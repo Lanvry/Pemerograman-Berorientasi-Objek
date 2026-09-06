@@ -2,83 +2,81 @@
 ## MODUL 2: Implementasi Class, Object, Attribute, Method, dan Constructor
 
 ### 1. Profil Proyek
-- **Nama Proyek:** Sistem Toko Online (E-Commerce Management)
-- **Pengembang:** Arjuna Lanang Ading Warsana
+- **Nama Proyek:** Sistem Perpustakaan
+- **Pengembang:** Arjuna Lanang Adiwarsana
 - **Mata Kuliah:** Workshop Pemrograman Framework (PBO)
-- **Basis Proyek (P1):** Sistem Manajemen Produk & Transaksi Toko
+- **Basis Proyek (P2):** Sistem Manajemen Buku, Anggota & Peminjaman Perpustakaan
 
 ---
 
 ### 2. Product Goal
-Membangun sistem toko online yang terstruktur dan modular untuk mengelola katalog produk, profil pelanggan, dan alur transaksi secara otomatis dengan mengimplementasikan prinsip-prinsip Pemrograman Berorientasi Obyek (PBO).
+Membangun sistem pencatatan peminjaman buku perpustakaan yang terstruktur.
 
 ---
 
 ### 3. Sprint Goal (Sprint P2)
-Mengimplementasikan class utama proyek (`Produk`, `Pelanggan`, `Transaksi`) sehingga objek dapat dibuat, diberi data awal melalui constructor, serta menjalankan operasi dasar method (tanpa parameter, dengan parameter, dan return value).
+Mengimplementasikan class utama proyek (`Buku`, `Anggota`, `Peminjaman`) sehingga object dapat dibuat, diberi data awal melalui constructor, serta menjalankan operasi dasar method (tanpa parameter, dengan parameter, dan return value).
 
 ---
 
 ### 4. Sprint Backlog (P2)
 | ID | Sprint Backlog Item | Status |
 |---|---|---|
-| SB-01 | Membuat class `Produk` beserta atribut (`kodeProduk`, `nama`, `harga`, `stok`) | **DONE** |
-| SB-02 | Membuat class `Pelanggan` beserta atribut (`idPelanggan`, `nama`, `email`, `saldo`) | **DONE** |
-| SB-03 | Membuat class `Transaksi` beserta atribut (`kodeTransaksi`, `produk`, `pelanggan`, `jumlah`) | **DONE** |
-| SB-04 | Membuat constructor pada setiap class untuk inisialisasi objek | **DONE** |
-| SB-05 | Membuat method utama (tanpa param, dengan param, return value) | **DONE** |
-| SB-06 | Membuat minimal 2 objek per class dan skenario pengujian pada `Main.java` | **DONE** |
+| SB-01 | Membuat class `Buku` beserta atribut (`kode`, `judul`, `penulis`) | **Done** |
+| SB-02 | Membuat class `Anggota` beserta atribut (`id`, `nama`, `alamat`) | **Done** |
+| SB-03 | Membuat class `Peminjaman` beserta atribut (`tanggal`, `buku`, `anggota`) | **Done** |
+| SB-04 | Membuat constructor pada setiap class untuk inisialisasi objek | **Done** |
+| SB-05 | Membuat method utama (tanpa param, dengan param, return value) | **Done** |
+| SB-06 | Membuat minimal 2 objek per class dan skenario pengujian pada `Main.java` | **Done** |
 
 ---
 
-### 5. Refinement Objek dan Spesifikasi Class
+### 5. Refinement Object dan Spesifikasi Class
 | Class | Attribute | Method | Constructor |
 |---|---|---|---|
-| **Produk** | • `kodeProduk` (String)<br/>• `nama` (String)<br/>• `harga` (double)<br/>• `stok` (int) | • `tampilkanData()`<br/>• `tambahStok(int)`<br/>• `hitungTotalHarga(int)`<br/>• `getNama()`, `getHarga()` | `Produk(kodeProduk, nama, harga, stok)` |
-| **Pelanggan** | • `idPelanggan` (String)<br/>• `nama` (String)<br/>• `email` (String)<br/>• `saldo` (double) | • `tampilkanData()`<br/>• `topUpSaldo(double)`<br/>• `kelayakanTransaksi(double)`<br/>• `getNama()`, `getSaldo()` | `Pelanggan(idPelanggan, nama, email, saldo)` |
-| **Transaksi** | • `kodeTransaksi` (String)<br/>• `produk` (Produk)<br/>• `pelanggan` (Pelanggan)<br/>• `jumlah` (int) | • `tampilkanDetailTransaksi()`<br/>• `ubahJumlah(int)`<br/>• `hitungTotalBayar()`<br/>• `prosesTransaksi()` | `Transaksi(kodeTransaksi, produk, pelanggan, jumlah)` |
+| **Buku** | • `kode` (String)<br/>• `judul` (String)<br/>• `penulis` (String) | • `tampilkanData()`<br/>• `ubahJudul(String)`<br/>• `getJudul()` | `Buku(kode, judul, penulis)` |
+| **Anggota** | • `id` (String)<br/>• `nama` (String)<br/>• `alamat` (String) | • `tampilkanData()`<br/>• `ubahAlamat(String)`<br/>• `getNama()` | `Anggota(id, nama, alamat)` |
+| **Peminjaman** | • `tanggal` (String)<br/>• `buku` (Buku)<br/>• `anggota` (Anggota) | • `tampilkanData()`<br/>• `ubahTanggal(String)`<br/>• `getTanggal()` | `Peminjaman(tanggal, buku, anggota)` |
 
 ---
 
-### 6. Diagram Sederhana Class (UML Diagram)
+### 6. Diagram Class Sederhana (UML Diagram)
+Relasi dan hubungan antar class dalam proyek Sistem Perpustakaan:
+
 ```mermaid
 classDiagram
-    class Produk {
-        -String kodeProduk
-        -String nama
-        -double harga
-        -int stok
-        +Produk(kode, nama, harga, stok)
+    class Buku {
+        String kode
+        String judul
+        String penulis
+        +Buku(kode, judul, penulis)
         +tampilkanData() void
-        +tambahStok(int jumlah) void
-        +hitungTotalHarga(int qty) double
+        +ubahJudul(judulBaru) void
+        +getJudul() String
     }
 
-    class Pelanggan {
-        -String idPelanggan
-        -String nama
-        -String email
-        -double saldo
-        +Pelanggan(id, nama, email, saldo)
+    class Anggota {
+        String id
+        String nama
+        String alamat
+        +Anggota(id, nama, alamat)
         +tampilkanData() void
-        +topUpSaldo(double jumlah) void
-        +kelayakanTransaksi(double nom) boolean
+        +ubahAlamat(alamatBaru) void
+        +getNama() String
     }
 
-    class Transaksi {
-        -String kodeTransaksi
-        -Produk produk
-        -Pelanggan pelanggan
-        -int jumlah
-        +Transaksi(kode, produk, pelanggan, jumlah)
-        +tampilkanDetailTransaksi() void
-        +ubahJumlah(int jumlah) void
-        +hitungTotalBayar() double
-        +prosesTransaksi() boolean
+    class Peminjaman {
+        String tanggal
+        Buku buku
+        Anggota anggota
+        +Peminjaman(tanggal, buku, anggota)
+        +tampilkanData() void
+        +ubahTanggal(tanggalBaru) void
+        +getTanggal() String
     }
 
-    Transaksi "1..*" --> "1" Produk : memuat
-    Transaksi "1..*" --> "1" Pelanggan : memuat
+    Peminjaman "*" --> "1" Buku : memuat
+    Peminjaman "*" --> "1" Anggota : memuat
 ```
 
 <details>
@@ -86,35 +84,32 @@ classDiagram
 
 ```text
   +-----------------------------------+     +-----------------------------------+
-  |              Produk               |     |             Pelanggan             |
+  |               Buku                |     |              Anggota              |
   +-----------------------------------+     +-----------------------------------+
-  | - kodeProduk : String             |     | - idPelanggan : String            |
-  | - nama : String                   |     | - nama : String                   |
-  | - harga : double                  |     | - email : String                  |
-  | - stok : int                      |     | - saldo : double                  |
+  | String kode                       |     | String id                         |
+  | String judul                      |     | String nama                       |
+  | String penulis                    |     | String alamat                     |
   +-----------------------------------+     +-----------------------------------+
-  | + Produk(kode, nama, harga, stok) |     | + Pelanggan(id, nama, email, ...) |
-  | + tampilkanData()                 |     | + tampilkanData()                 |
-  | + tambahStok(jumlah: int)         |     | + topUpSaldo(jumlah: double)      |
-  | + hitungTotalHarga(qty: int)      |     | + kelayakanTransaksi(nom: double) |
+  | Buku(kode, judul, penulis)        |     | Anggota(id, nama, alamat)         |
+  | void tampilkanData()              |     | void tampilkanData()              |
+  | void ubahJudul(judulBaru)         |     | void ubahAlamat(alamatBaru)       |
+  | String getJudul()                 |     | String getNama()                  |
   +-----------------------------------+     +-----------------------------------+
                     ^                                         ^
                     | 1                                       | 1
                     +--------------------+--------------------+
                                          | *
                            +----------------------------+
-                           |         Transaksi          |
+                           |         Peminjaman         |
                            +----------------------------+
-                           | - kodeTransaksi : String   |
-                           | - produk : Produk          |
-                           | - pelanggan : Pelanggan    |
-                           | - jumlah : int             |
+                           | String tanggal             |
+                           | Buku buku                  |
+                           | Anggota anggota            |
                            +----------------------------+
-                           | + Transaksi(...)           |
-                           | + tampilkanDetail()        |
-                           | + ubahJumlah(jumlah: int)  |
-                           | + hitungTotalBayar()       |
-                           | + prosesTransaksi()        |
+                           | Peminjaman(...)            |
+                           | void tampilkanData()       |
+                           | void ubahTanggal(tglBaru)  |
+                           | String getTanggal()        |
                            +----------------------------+
 ```
 </details>
@@ -126,54 +121,71 @@ classDiagram
 =================================================
    P2 - IMPLEMENTASI CLASS, OBJECT, ATTRIBUTE,  
            METHOD, DAN CONSTRUCTOR               
+             SISTEM PERPUSTAKAAN                 
 =================================================
 
 === 1. PEMBUATAN OBJEK (CONSTRUCTOR) ===
-[SUCCESS] Objek produk1, produk2, pelanggan1, pelanggan2 berhasil dibuat.
+[SUCCESS] Minimal 2 Objek per class berhasil dibuat.
 
 === 2. PENGUJIAN METHOD TANPA PARAMETER ===
---- Detail Produk ---
-Kode Produk : P001
-Nama Produk : Laptop Gaming Asus
-Harga       : Rp 15.000.000,00
-Stok        : 10
+--- Detail Buku ---
+Kode Buku : B001
+Judul Buku: Pemrograman Java Dasar
+Penulis   : Nirwana Haidar
 
---- Detail Pelanggan ---
-ID Pelanggan : C001
-Nama         : Arjuna Lanang
-Email        : arjuna@email.com
-Saldo        : Rp 20.000.000,00
+--- Detail Buku ---
+Kode Buku : B002
+Judul Buku: Struktur Data & Algoritma
+Penulis   : Budi Raharjo
+
+--- Detail Anggota ---
+ID Anggota : A001
+Nama       : Arjuna Lanang
+Alamat     : Jl. Sumenep No. 10
+
+--- Detail Anggota ---
+ID Anggota : A002
+Nama       : Siti Aminah
+Alamat     : Jl. Pemuda No. 45
+
+========================================
+      DETAIL PEMINJAMAN PERPUSTAKAAN    
+========================================
+Tanggal Pinjam : 2026-09-01
+Peminjam       : Arjuna Lanang
+Buku Dipinjam  : Pemrograman Java Dasar
+========================================
 
 === 3. PENGUJIAN METHOD DENGAN PARAMETER ===
-[INFO] Stok Laptop Gaming Asus berhasil ditambahkan sebanyak 5. Stok sekarang: 15
-[INFO] Top up saldo untuk Budi Santoso sebesar Rp 2.000.000,00 berhasil. Saldo baru: Rp 6.000.000,00
+[INFO] Judul buku dengan kode B001 berhasil diubah menjadi: "Pemrograman Java Lanjut & Framework"
+[INFO] Alamat anggota Siti Aminah (A002) berhasil diubah menjadi: Jl. Merdeka No. 88, Surabaya
+[INFO] Tanggal peminjaman untuk anggota Arjuna Lanang berhasil diubah menjadi: 2026-09-02
 
 === 4. PENGUJIAN METHOD DENGAN RETURN VALUE ===
-Kalkulasi total harga 2 unit Laptop Gaming Asus: Rp 30.000.000,00
-Apakah pelanggan Budi Santoso layak belanja Rp 5.000.000? YA
+Judul Buku 1 (via getJudul())    : Pemrograman Java Lanjut & Framework
+Nama Anggota 2 (via getNama())   : Siti Aminah
+Tanggal Pinjam 1 (via getTanggal()): 2026-09-02
 
-=== 5. PEMBUATAN OBJEK TRANSAKSI & OPERASI BERSAMA ===
---- Transaksi 1 ---
+=== 5. RINGKASAN DATA AKHIR PEMINJAMAN ===
 ========================================
-        DETAIL TRANSAKSI TOKO           
+      DETAIL PEMINJAMAN PERPUSTAKAAN    
 ========================================
-Kode Transaksi : TRX001
-Pelanggan      : Arjuna Lanang
-Produk Dibeli  : Laptop Gaming Asus
-Harga Satuan   : Rp 15.000.000,00
-Jumlah Beli    : 1
-Total Bayar    : Rp 15.000.000,00
+Tanggal Pinjam : 2026-09-02
+Peminjam       : Arjuna Lanang
+Buku Dipinjam  : Pemrograman Java Lanjut & Framework
 ========================================
 
-[PROSES TRANSAKSI TRX001]
-[BERHASIL] Transaksi TRX001 berhasil diproses!
-Sisa stok Laptop Gaming Asus: 14
-Sisa saldo Arjuna Lanang: Rp 5.000.000,00
+========================================
+      DETAIL PEMINJAMAN PERPUSTAKAAN    
+========================================
+Tanggal Pinjam : 2026-09-05
+Peminjam       : Siti Aminah
+Buku Dipinjam  : Struktur Data & Algoritma
+========================================
 
---- Transaksi 2 (Mengubah Jumlah dengan Parameter) ---
-[INFO] Jumlah pembelian transaksi TRX002 diubah menjadi 2
-[PROSES TRANSAKSI TRX002]
-[GAGAL] Saldo pelanggan Budi Santoso tidak mencukupi. (Saldo: Rp 6.000.000, Total: Rp 10.000.000)
+=================================================
+       PENGUJIAN MODUL 2 SELESAI DENGAN SUKSES!  
+=================================================
 ```
 
 ---
@@ -181,7 +193,7 @@ Sisa saldo Arjuna Lanang: Rp 5.000.000,00
 ### 8. Sprint Review
 | Item Kriteria | Hasil Implementasi |
 |---|---|
-| **Class berhasil dibuat** | Berhasil dibuat 3 class: `Produk`, `Pelanggan`, `Transaksi` |
+| **Class berhasil dibuat** | Berhasil dibuat 3 class: `Buku`, `Anggota`, `Peminjaman` |
 | **Object berhasil dibuat** | Berhasil dibuat minimal 2 objek per class pada `Main.java` |
 | **Constructor berjalan** | Berjalan sempurna menginisialisasi seluruh atribut objek |
 | **Method berjalan** | Berhasil mengeksekusi method tanpa param, param, & return value |
@@ -191,6 +203,6 @@ Sisa saldo Arjuna Lanang: Rp 5.000.000,00
 ---
 
 ### 9. Sprint Retrospective
-- **What Went Well?** Seluruh struktur class, atribut, constructor, dan method berhasil dibangun dengan bersih dan rapi. Seluruh skenario pengujian pada `Main.java` berjalan sesuai ekspektasi.
-- **What Went Wrong?** Diperlukan perhatian khusus pada validasi kondisi stok dan saldo sebelum transaksi diproses agar tidak terjadi nilai minus.
-- **Improvement:** Pada Sprint P3 berikutnya, atribut class akan dienkapsulasi menggunakan access modifier *private* serta ditambahkan getter/setter dan validasi ketat.
+- **What Went Well?** Seluruh struktur class (Buku, Anggota, Peminjaman), atribut, constructor, dan ketiga jenis method berhasil dibangun dengan rapi serta dijalankan tanpa error.
+- **What Went Wrong?** Atribut class masih menggunakan tingkat akses default/package-private sehingga nilainya masih dapat diubah secara langsung dari luar class tanpa validasi.
+- **Improvement:** Pada Sprint P3 berikutnya, seluruh atribut class akan dienkapsulasi menggunakan access modifier *private* serta ditambahkan getter, setter, dan validasi data terkontrol.
