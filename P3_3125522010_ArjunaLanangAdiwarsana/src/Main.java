@@ -63,7 +63,7 @@ public class Main {
         System.out.println("Getter -> Durasi Setelah Uji: " + peminjaman1.getDurasiHari() + " Hari (Data Tetap Aman)\n");
 
         System.out.println("[UJI 6] Uji pembuatan objek peminjaman invalid via Constructor:");
-        Peminjaman peminjamanInvalid = new Peminjaman("", null, null, 30);
+        new Peminjaman("", null, null, 30);
 
         // 4. RINGKASAN AKHIR PENGUJIAN P3
         System.out.println("\n=== 4. RINGKASAN DATA AKHIR PEMINJAMAN ===");
