@@ -557,13 +557,13 @@ public class AdminGUI extends JFrame {
      * Card CCTV Kamera Live tersemat langsung di dashboard untuk pemantauan realtime (Format Kompak)
      */
     private JPanel buildCCTVCard() {
-        JPanel card = new JPanel(new BorderLayout(0, 4));
+        JPanel card = new JPanel(new BorderLayout(0, 5));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(6, 10, 6, 10)));
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 205));
-        card.setPreferredSize(new Dimension(438, 205));
+            new EmptyBorder(8, 10, 8, 10)));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 315));
+        card.setPreferredSize(new Dimension(438, 305));
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
@@ -576,36 +576,43 @@ public class AdminGUI extends JFrame {
         card.add(top, BorderLayout.NORTH);
 
         cctvScreen = new JLabel("", SwingConstants.CENTER);
-        cctvScreen.setPreferredSize(new Dimension(420, 130));
-        cctvScreen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
-        cctvScreen.setMinimumSize(new Dimension(320, 130));
+        cctvScreen.setPreferredSize(new Dimension(438, 220));
+        cctvScreen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
+        cctvScreen.setMinimumSize(new Dimension(340, 200));
         cctvScreen.setOpaque(true);
         cctvScreen.setBackground(Color.BLACK);
         cctvScreen.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        cctvScreen.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        cctvScreen.setToolTipText("Klik layar untuk memperbesar dialog HD Scanner & Setting AI");
+        cctvScreen.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                openCameraScannerDialog();
+            }
+        });
         card.add(cctvScreen, BorderLayout.CENTER);
 
-        JPanel bot = new JPanel(new BorderLayout(0, 4));
+        JPanel bot = new JPanel(new BorderLayout(0, 5));
         bot.setOpaque(false);
 
         lblCCTVStatus = new JLabel("<html><span style='color:#38bdf8;font-size:10px;'>🟢 Sensor aktif: Menunggu kendaraan di gerbang masuk...</span></html>");
         bot.add(lblCCTVStatus, BorderLayout.NORTH);
 
-        JPanel actions = new JPanel(new GridLayout(1, 3, 4, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 3, 5, 0));
         actions.setOpaque(false);
 
         JButton btnSimulate = button("🚗 Test Xenia", BLUE, WHITE);
-        btnSimulate.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        btnSimulate.setBorder(new EmptyBorder(4, 4, 4, 4));
+        btnSimulate.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnSimulate.setBorder(new EmptyBorder(5, 5, 5, 5));
         btnSimulate.addActionListener(e -> simulateCarArrival());
 
         btnCCTVToggle = button("⏹ Jeda Video", CARD_BG, T1);
-        btnCCTVToggle.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        btnCCTVToggle.setBorder(new EmptyBorder(4, 4, 4, 4));
+        btnCCTVToggle.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnCCTVToggle.setBorder(new EmptyBorder(5, 5, 5, 5));
         btnCCTVToggle.addActionListener(e -> toggleCCTVStreaming());
 
-        JButton btnSettings = button("⚙️ Setting AI", CARD_BG, T1);
-        btnSettings.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        btnSettings.setBorder(new EmptyBorder(4, 4, 4, 4));
+        JButton btnSettings = button("🔍 Perbesar", CARD_BG, T1);
+        btnSettings.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnSettings.setBorder(new EmptyBorder(5, 5, 5, 5));
         btnSettings.addActionListener(e -> openCameraScannerDialog());
 
         actions.add(btnSimulate);
@@ -768,8 +775,8 @@ public class AdminGUI extends JFrame {
 
     private void drawCCTVScreen(BufferedImage frame, boolean isDetected, String hudStatus) {
         if (cctvScreen == null) return;
-        int targetW = cctvScreen.getWidth() > 0 ? cctvScreen.getWidth() : 420;
-        int targetH = 130; // Kunci tinggi kamera 130px agar presisi, tajam, dan tidak mendominasi layar
+        int targetW = cctvScreen.getWidth() > 0 ? cctvScreen.getWidth() : 438;
+        int targetH = 220; // 220px untuk tampilan CCTV yang luas dan mudah diinspeksi
 
         BufferedImage combined = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = combined.createGraphics();
@@ -788,16 +795,16 @@ public class AdminGUI extends JFrame {
             g2.fillRect(0, 0, targetW, targetH);
         }
 
-        // Bounding Scanner Reticle Kompak
-        int rw = Math.min(targetW - 80, 220), rh = 76;
+        // Bounding Scanner Reticle Presisi
+        int rw = Math.min(targetW - 70, 260), rh = 125;
         int rx = (targetW - rw) / 2;
-        int ry = (targetH - rh) / 2 - 2;
+        int ry = (targetH - rh) / 2 - 4;
 
         Color hudColor = isDetected ? new Color(34, 197, 94) : new Color(59, 130, 246);
         g2.setColor(hudColor);
-        g2.setStroke(new BasicStroke(1.8f));
+        g2.setStroke(new BasicStroke(2.2f));
 
-        int cLen = 12;
+        int cLen = 18;
         g2.drawLine(rx, ry, rx + cLen, ry);
         g2.drawLine(rx, ry, rx, ry + cLen);
         g2.drawLine(rx + rw, ry, rx + rw - cLen, ry);
@@ -810,17 +817,21 @@ public class AdminGUI extends JFrame {
         g2.setColor(new Color(hudColor.getRed(), hudColor.getGreen(), hudColor.getBlue(), 20));
         g2.fillRect(rx, ry, rw, rh);
 
-        // Header Text
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 8));
+        // Header Text & Dot Indicator
+        g2.setColor(new Color(15, 23, 42, 190));
+        g2.fillRoundRect(8, 8, 230, 20, 4, 4);
+        g2.setColor(Color.RED);
+        g2.fillOval(14, 14, 8, 8);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
         g2.setColor(Color.WHITE);
-        g2.drawString("CAM-01 • GERBANG MASUK REALTIME", 8, 14);
+        g2.drawString("CAM-01 • GERBANG MASUK REALTIME", 28, 22);
 
         // Status Badge at Bottom
-        g2.setColor(new Color(15, 23, 42, 210));
-        g2.fillRoundRect(rx, ry + rh - 18, rw, 16, 4, 4);
+        g2.setColor(new Color(15, 23, 42, 225));
+        g2.fillRoundRect(rx, ry + rh - 24, rw, 22, 5, 5);
         g2.setColor(hudColor);
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 8));
-        g2.drawString(hudStatus != null ? hudStatus : "MEMANTAU GERBANG MASUK...", rx + 6, ry + rh - 6);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        g2.drawString(hudStatus != null ? hudStatus : "MEMANTAU GERBANG MASUK...", rx + 8, ry + rh - 8);
 
         g2.dispose();
         cctvScreen.setIcon(new ImageIcon(combined));
