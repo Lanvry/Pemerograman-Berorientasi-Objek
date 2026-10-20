@@ -6,21 +6,27 @@
   <title>SmartParkir Admin Dashboard - PENS PSDKU</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #0f111a;
-      --card-bg: #181a27;
-      --card-inner: #1f2233;
-      --border-color: #2b2f45;
-      --accent-blue: #3b82f6;
-      --accent-cyan: #06b6d4;
-      --accent-green: #10b981;
-      --accent-red: #ef4444;
-      --accent-yellow: #f59e0b;
-      --accent-purple: #8b5cf6;
-      --text-white: #f8fafc;
-      --text-muted: #94a3b8;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --card-inner: #f1f5f9;
+      --border-color: #e2e8f0;
+      --border-focus: #2563eb;
+      --accent-blue: #2563eb;
+      --accent-green: #059669;
+      --accent-red: #e11d48;
+      --accent-yellow: #d97706;
+      --accent-purple: #7c3aed;
+      --text-dark: #0f172a;
+      --text-body: #334155;
+      --text-muted: #64748b;
+      
+      --green-soft: #ecfdf5;
+      --red-soft: #fff1f2;
+      --purple-soft: #f5f3ff;
+      --blue-soft: #eff6ff;
     }
 
     * {
@@ -31,8 +37,8 @@
     }
 
     body {
-      background-color: var(--bg-dark);
-      color: var(--text-white);
+      background-color: var(--bg-light);
+      color: var(--text-dark);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -41,7 +47,7 @@
 
     /* TOP NAVBAR */
     header {
-      background: rgba(24, 26, 39, 0.85);
+      background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-color);
       padding: 14px 28px;
@@ -62,7 +68,7 @@
     .brand-logo {
       width: 40px;
       height: 40px;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
       border-radius: 10px;
       display: flex;
       align-items: center;
@@ -70,13 +76,14 @@
       font-weight: 800;
       font-size: 20px;
       color: white;
-      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
     }
 
     .brand-text h1 {
       font-size: 17px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: -0.3px;
+      color: var(--text-dark);
     }
 
     .brand-text p {
@@ -86,25 +93,26 @@
 
     .stats-bar {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       align-items: center;
     }
 
     .stat-pill {
-      background: var(--card-inner);
+      background: var(--card-bg);
       border: 1px solid var(--border-color);
       padding: 6px 14px;
-      border-radius: 20px;
+      border-radius: 12px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
 
     .stat-pill span {
       font-size: 9px;
       color: var(--text-muted);
       text-transform: uppercase;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .stat-pill strong {
@@ -114,7 +122,7 @@
 
     /* MAIN CONTAINER */
     .container {
-      max-width: 1500px;
+      max-width: 1480px;
       margin: 0 auto;
       padding: 24px;
       display: grid;
@@ -129,8 +137,8 @@
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      padding: 22px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -144,7 +152,8 @@
 
     .card-title {
       font-size: 15px;
-      font-weight: 700;
+      font-weight: 800;
+      color: var(--text-dark);
       display: flex;
       align-items: center;
       gap: 8px;
@@ -170,9 +179,8 @@
     .pillar {
       width: 14px;
       height: 38px;
-      background: #475569;
+      background: #64748b;
       border-radius: 3px;
-      position: relative;
     }
 
     .barrier-arm {
@@ -195,13 +203,13 @@
       font-weight: 700;
       padding: 4px 10px;
       border-radius: 12px;
-      background: rgba(239, 68, 68, 0.15);
+      background: rgba(239, 68, 68, 0.1);
       color: var(--accent-red);
       transition: all 0.3s;
     }
 
     .gate-badge.open {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.12);
       color: var(--accent-green);
     }
 
@@ -236,40 +244,44 @@
     }
 
     .slot-item {
-      background: var(--card-inner);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
+      border-radius: 14px;
       padding: 14px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 110px;
+      min-height: 115px;
       position: relative;
-      overflow: hidden;
-      transition: all 0.3s ease;
       cursor: pointer;
+      transition: all 0.25s ease;
+      background: var(--card-bg);
     }
 
     .slot-item:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    }
+
+    .slot-item.selected {
+      border: 2.5px solid var(--border-focus) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
     }
 
     .slot-item.available {
-      border-color: rgba(16, 185, 129, 0.35);
-      background: linear-gradient(145deg, rgba(16, 185, 129, 0.05), var(--card-inner));
+      background: var(--green-soft);
+      border-color: #a7f3d0;
     }
 
     .slot-item.available::before {
       content: '';
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 8px;
+      right: 8px;
       width: 8px;
       height: 8px;
       border-radius: 50%;
       background: var(--accent-green);
-      box-shadow: 0 0 10px var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
       animation: pulseGlow 1.8s infinite;
     }
 
@@ -279,13 +291,13 @@
     }
 
     .slot-item.occupied {
-      border-color: rgba(239, 68, 68, 0.35);
-      background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), var(--card-inner));
+      background: var(--red-soft);
+      border-color: #fecdd3;
     }
 
     .slot-item.ev-charging {
-      border-color: rgba(139, 92, 246, 0.45);
-      background: linear-gradient(145deg, rgba(139, 92, 246, 0.08), var(--card-inner));
+      background: var(--purple-soft);
+      border-color: #ddd6fe;
     }
 
     .slot-header {
@@ -295,17 +307,18 @@
     }
 
     .slot-id {
-      font-size: 14px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 800;
       font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dark);
     }
 
     .slot-type-badge {
-      font-size: 9px;
+      font-size: 10px;
       font-weight: 700;
       padding: 2px 6px;
       border-radius: 6px;
-      background: var(--card-bg);
+      background: rgba(255, 255, 255, 0.7);
       color: var(--text-muted);
     }
 
@@ -316,7 +329,7 @@
 
     .slot-plate {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
       color: var(--accent-red);
       letter-spacing: 0.5px;
@@ -325,19 +338,20 @@
     .slot-model {
       font-size: 11px;
       color: var(--text-muted);
+      margin-top: 2px;
     }
 
     .slot-status-text {
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       color: var(--accent-green);
     }
 
-    /* RIGHT COLUMN CONTROLS */
+    /* TABS ACTIONS */
     .tabs-actions {
       display: flex;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 4px;
+      margin-bottom: 14px;
     }
 
     .action-tab-btn {
@@ -383,11 +397,11 @@
     }
 
     .form-input, .form-select {
-      background: var(--card-inner);
+      background: var(--bg-light);
       border: 1px solid var(--border-color);
       padding: 10px 14px;
       border-radius: 10px;
-      color: var(--text-white);
+      color: var(--text-dark);
       font-size: 13px;
       outline: none;
       transition: border-color 0.2s;
@@ -395,6 +409,7 @@
 
     .form-input:focus, .form-select:focus {
       border-color: var(--accent-blue);
+      background: #ffffff;
     }
 
     .btn {
@@ -413,30 +428,40 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+      background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
       color: white;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
     }
 
     .btn-primary:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
     }
 
     .btn-success {
-      background: linear-gradient(135deg, var(--accent-green), #059669);
+      background: linear-gradient(135deg, var(--accent-green), #047857);
       color: white;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
     }
 
     .btn-success:hover {
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+    }
+
+    .click-hint-box {
+      background: var(--blue-soft);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #1e40af;
+      margin-bottom: 12px;
     }
 
     /* RECENT TRANSACTIONS TABLE */
     .table-container {
-      max-height: 240px;
+      max-height: 220px;
       overflow-y: auto;
       border: 1px solid var(--border-color);
       border-radius: 10px;
@@ -460,11 +485,13 @@
 
     td {
       padding: 10px 12px;
-      border-bottom: 1px solid rgba(43, 47, 69, 0.4);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-body);
     }
 
     tr:hover td {
-      background: rgba(31, 34, 51, 0.6);
+      background: rgba(241, 245, 249, 0.8);
+      cursor: pointer;
     }
 
     .badge-pill {
@@ -476,13 +503,13 @@
     }
 
     .badge-paid {
-      background: rgba(16, 185, 129, 0.15);
+      background: var(--green-soft);
       color: var(--accent-green);
     }
 
     .badge-active {
-      background: rgba(245, 158, 11, 0.15);
-      color: var(--accent-yellow);
+      background: #fef3c7;
+      color: #b45309;
     }
 
     /* RECEIPT MODAL */
@@ -492,7 +519,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.7);
+      background: rgba(15, 23, 42, 0.5);
       backdrop-filter: blur(4px);
       display: none;
       align-items: center;
@@ -502,22 +529,16 @@
 
     .modal-backdrop.show {
       display: flex;
-      animation: fadeIn 0.2s ease-out;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
     }
 
     .receipt-card {
       background: #ffffff;
-      color: #1e293b;
+      color: #0f172a;
       width: 360px;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-      font-family: 'JetBrains Mono', monospace;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+      border: 1px solid var(--border-color);
     }
 
     .receipt-header {
@@ -529,7 +550,7 @@
 
     .receipt-header h3 {
       font-size: 16px;
-      color: #0f172a;
+      font-weight: 800;
     }
 
     .receipt-row {
@@ -553,7 +574,7 @@
       margin-top: 18px;
       width: 100%;
       padding: 10px;
-      background: #0f172a;
+      background: var(--text-dark);
       color: white;
       border: none;
       border-radius: 8px;
@@ -599,8 +620,9 @@
     <!-- LEFT: PARKING GRID & GATE STATUS -->
     <div class="card">
       <div class="card-header">
-        <div class="card-title">
-          <span>🅿️ Denah Slot Parkir Realtime</span>
+        <div>
+          <div class="card-title">🅿️ Denah Slot Parkir Realtime</div>
+          <div style="font-size: 11px; color: var(--accent-blue); margin-top: 2px;">💡 Klik mobil parkir pada denah untuk langsung check-out otomatis</div>
         </div>
         <div class="floor-tabs">
           <button class="tab-btn active" onclick="switchFloor('ALL')">Semua</button>
@@ -615,8 +637,8 @@
           <div class="pillar"></div>
           <div class="barrier-arm" id="barrierArm"></div>
           <div>
-            <div style="font-size: 13px; font-weight: 700;" id="gateTitle">Portal Masuk / Keluar</div>
-            <div style="font-size: 11px; color: var(--text-muted);" id="gateSub">Sensor Otomatis Barrier Arm</div>
+            <div style="font-size: 13px; font-weight: 700;" id="gateTitle">Portal Barrier Gate</div>
+            <div style="font-size: 11px; color: var(--text-muted);" id="gateSub">Sensor Otomatis Masuk & Keluar</div>
           </div>
         </div>
         <div class="gate-badge" id="gateBadge">PORTAL TERTUTUP</div>
@@ -626,6 +648,12 @@
       <div class="slots-grid" id="slotsGrid">
         <!-- Generated Dynamically via JS -->
       </div>
+
+      <div style="display: flex; justify-content: center; gap: 16px; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+        <span><b style="color: var(--accent-green);">●</b> Tersedia</span>
+        <span><b style="color: var(--accent-red);">●</b> Terisi (Klik utk Check-Out)</span>
+        <span><b style="color: var(--accent-purple);">●</b> EV Charger</span>
+      </div>
     </div>
 
     <!-- RIGHT: QUICK ACTIONS & LOGS -->
@@ -634,12 +662,12 @@
       <!-- ACTION CARD -->
       <div class="card">
         <div class="tabs-actions">
-          <button class="action-tab-btn active" onclick="switchActionTab('checkin')">Check-In Masuk</button>
-          <button class="action-tab-btn" onclick="switchActionTab('checkout')">Check-Out & Kasir</button>
+          <button class="action-tab-btn" id="tabBtnCheckin" onclick="switchActionTab('checkin')">Check-In Masuk</button>
+          <button class="action-tab-btn active" id="tabBtnCheckout" onclick="switchActionTab('checkout')">Check-Out & Kasir</button>
         </div>
 
         <!-- FORM CHECK-IN -->
-        <div id="checkinTab">
+        <div id="checkinTab" style="display: none;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="form-group">
               <label>Nomor Plat Kendaraan</label>
@@ -661,34 +689,38 @@
             </div>
             <div class="form-group">
               <label>Jam Masuk (0 - 23)</label>
-              <input type="number" id="inJam" class="form-input" min="0" max="23" value="9">
+              <input type="number" id="inJam" class="form-input" min="0" max="23" value="10">
             </div>
           </div>
           <button class="btn btn-primary" onclick="handleCheckIn()">
-            <span>🚗</span> TAP-IN & CARIKAN SLOT TERDEKAT
+            <span>🚗</span> TAP-IN & ALOKASIKAN SLOT TERDEKAT
           </button>
         </div>
 
-        <!-- FORM CHECK-OUT -->
-        <div id="checkoutTab" style="display: none;">
+        <!-- FORM CHECK-OUT (DEFAULT AKTIF) -->
+        <div id="checkoutTab">
+          <div class="click-hint-box" id="checkoutBanner">
+            ✔ Kendaraan <b>B 1234 ABC</b> terpilih otomatis! Klik tombol bayar untuk langsung check-out.
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
             <div class="form-group">
               <label>Pilih Tiket / Plat</label>
-              <select id="outTiketSelect" class="form-select" onchange="previewBilling()">
+              <select id="outTiketSelect" class="form-select" onchange="onSelectTicketChanged()">
                 <!-- Populated by JS -->
               </select>
             </div>
             <div class="form-group">
               <label>Jam Keluar (0 - 23)</label>
-              <input type="number" id="outJam" class="form-input" min="0" max="23" value="13" onchange="previewBilling()">
+              <input type="number" id="outJam" class="form-input" min="0" max="23" value="12" oninput="previewBilling()">
             </div>
           </div>
           <div style="background: var(--card-inner); padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px dashed var(--border-color);">
             <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
               <span style="color: var(--text-muted);">Durasi & Tagihan:</span>
-              <strong id="billingPreview" style="color: var(--accent-yellow);">Rp 0</strong>
+              <strong id="billingPreview" style="color: var(--accent-blue); font-size: 14px;">Rp 14.000 (4 Jam)</strong>
             </div>
-            <div style="font-size: 11px; color: var(--accent-green);" id="evDiscountNotice"></div>
+            <div style="font-size: 11px; color: var(--accent-green); font-weight: 600;" id="evDiscountNotice"></div>
           </div>
           <div class="form-group">
             <label>Metode Pembayaran</label>
@@ -719,7 +751,7 @@
                 <th>Plat Nomor</th>
                 <th>Tipe</th>
                 <th>Slot</th>
-                <th>Durasi</th>
+                <th>Jam</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -738,7 +770,7 @@
     <div class="receipt-card">
       <div class="receipt-header">
         <h3>MALL GRAND PENS PLAZA</h3>
-        <p style="font-size: 11px; color: #64748b;">Smart Parking Struk Keluar</p>
+        <p style="font-size: 11px; color: var(--text-muted);">Smart Parking Struk Keluar</p>
       </div>
       <div class="receipt-row">
         <span>No. Tiket</span>
@@ -762,7 +794,7 @@
       </div>
       <div class="receipt-total">
         <span>TOTAL BAYAR</span>
-        <span id="rTotal" style="color: #059669;">Rp 0</span>
+        <span id="rTotal" style="color: var(--accent-green);">Rp 0</span>
       </div>
       <button class="receipt-btn-close" onclick="closeReceiptModal()">TUTUP KUITANSI</button>
     </div>
@@ -770,7 +802,6 @@
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    // In-memory data matching Java classes
     const slots = [
       { id: 'MTR-L1-01', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
       { id: 'MTR-L1-02', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
@@ -796,28 +827,13 @@
       }
     ];
 
+    let selectedSlotId = 'MBL-L1-01';
     let totalRevenue = 0;
     let ticketCounter = 2;
     let currentFloorFilter = 'ALL';
 
     function formatRupiah(num) {
       return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
-    }
-
-    // Audio SFX synthesis
-    function playBeep(freq = 880, duration = 0.12) {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
     }
 
     function renderSlots() {
@@ -829,12 +845,14 @@
       filtered.forEach(s => {
         const card = document.createElement('div');
         const isEV = s.type === 'MOBIL_LISTRIK';
-        card.className = `slot-item ${s.occupied ? 'occupied' : 'available'} ${isEV ? 'ev-charging' : ''}`;
+        const isSelected = (selectedSlotId === s.id);
+
+        card.className = `slot-item ${s.occupied ? 'occupied' : 'available'} ${isEV ? 'ev-charging' : ''} ${isSelected ? 'selected' : ''}`;
 
         card.innerHTML = `
           <div class="slot-header">
             <span class="slot-id">${s.id}</span>
-            <span class="slot-type-badge">${isEV ? '⚡ EV CHARGE' : s.type} • LT.${s.floor}</span>
+            <span class="slot-type-badge">${isEV ? '⚡ EV' : s.type} • LT.${s.floor}</span>
           </div>
           <div class="slot-body">
             ${s.occupied ? `
@@ -842,15 +860,39 @@
               <div class="slot-model">${s.vehicle.model}</div>
             ` : `
               <div class="slot-status-text">TERSEDIA</div>
-              <div style="font-size: 10px; color: var(--text-muted);">${isEV ? 'Siap Fast Charging' : 'Siap Parkir'}</div>
+              <div style="font-size: 10px; color: var(--text-muted);">${isEV ? '⚡ EV Charger Ready' : 'Siap Parkir'}</div>
             `}
           </div>
         `;
+
+        // KLIK PADA MOBIL / SLOT LANGSUNG
+        card.onclick = () => onSlotCardClicked(s);
+
         grid.appendChild(card);
       });
 
       updateStats();
       populateCheckoutSelect();
+    }
+
+    function onSlotCardClicked(slot) {
+      selectedSlotId = slot.id;
+
+      if (slot.occupied) {
+        // Beralih ke tab check-out dan pilih tiket mobil ini
+        switchActionTab('checkout');
+        const matchingTx = transactions.find(t => !t.paid && t.slotId === slot.id);
+
+        if (matchingTx) {
+          document.getElementById('outTiketSelect').value = matchingTx.ticket;
+          document.getElementById('checkoutBanner').innerHTML = `✔ Kendaraan <b>${slot.vehicle.plate}</b> (${slot.vehicle.model}) di slot <b>${slot.id}</b> terpilih! Klik bayar untuk check-out.`;
+          previewBilling();
+        }
+      } else {
+        document.getElementById('checkoutBanner').innerHTML = `💡 Slot <b>${slot.id}</b> (Lantai ${slot.floor}) sedang kosong. Pilih kendaraan terparkir warna merah untuk check-out.`;
+      }
+
+      renderSlots();
     }
 
     function updateStats() {
@@ -872,8 +914,8 @@
     }
 
     function switchActionTab(tab) {
-      document.querySelectorAll('.action-tab-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
+      document.getElementById('tabBtnCheckin').classList.toggle('active', tab === 'checkin');
+      document.getElementById('tabBtnCheckout').classList.toggle('active', tab === 'checkout');
       document.getElementById('checkinTab').style.display = tab === 'checkin' ? 'block' : 'none';
       document.getElementById('checkoutTab').style.display = tab === 'checkout' ? 'block' : 'none';
       if (tab === 'checkout') previewBilling();
@@ -886,7 +928,6 @@
         arm.classList.add('open');
         badge.classList.add('open');
         badge.innerText = text;
-        playBeep(1200, 0.2);
         setTimeout(() => {
           arm.classList.remove('open');
           badge.classList.remove('open');
@@ -895,7 +936,6 @@
       }
     }
 
-    // CHECK-IN HANDLER
     function handleCheckIn() {
       const plate = document.getElementById('inPlat').value.trim();
       const type = document.getElementById('inTipe').value;
@@ -907,7 +947,6 @@
         return;
       }
 
-      // Find optimal slot (prioritize lowest floor and type match)
       let candidate = null;
       for (const s of slots) {
         if (!s.occupied) {
@@ -928,9 +967,9 @@
         return;
       }
 
-      // Fill slot
       candidate.occupied = true;
       candidate.vehicle = { plate, type, model };
+      selectedSlotId = candidate.id;
 
       const ticketNo = `TKT-${String(ticketCounter++).padStart(4, '0')}`;
       transactions.unshift({
@@ -944,13 +983,14 @@
         method: '-'
       });
 
-      triggerBarrierGate(true, 'GATE MASUK TERBUKA');
+      triggerBarrierGate(true, 'GATE MASUK DIBUKA');
       renderSlots();
       renderTransactions();
     }
 
     function populateCheckoutSelect() {
       const select = document.getElementById('outTiketSelect');
+      const currentVal = select.value;
       select.innerHTML = '';
       const activeTickets = transactions.filter(t => !t.paid);
 
@@ -963,8 +1003,22 @@
         const opt = document.createElement('option');
         opt.value = t.ticket;
         opt.innerText = `${t.ticket} - ${t.vehicle.plate} (${t.slotId})`;
+        if (t.ticket === currentVal || t.slotId === selectedSlotId) {
+          opt.selected = true;
+        }
         select.appendChild(opt);
       });
+      previewBilling();
+    }
+
+    function onSelectTicketChanged() {
+      const ticketId = document.getElementById('outTiketSelect').value;
+      const t = transactions.find(item => item.ticket === ticketId);
+      if (t) {
+        selectedSlotId = t.slotId;
+        document.getElementById('checkoutBanner').innerHTML = `✔ Kendaraan <b>${t.vehicle.plate}</b> di slot <b>${t.slotId}</b> terpilih!`;
+        renderSlots();
+      }
       previewBilling();
     }
 
@@ -974,7 +1028,7 @@
       const ticket = transactions.find(t => t.ticket === ticketId);
 
       if (!ticket) {
-        document.getElementById('billingPreview').innerText = 'Rp 0';
+        document.getElementById('billingPreview').innerText = 'Pilih kendaraan terisi';
         document.getElementById('evDiscountNotice').innerText = '';
         return;
       }
@@ -995,7 +1049,6 @@
       document.getElementById('evDiscountNotice').innerText = isEV ? '✨ Diskon Insentif Hijau 20% Diterapkan' : '';
     }
 
-    // CHECK-OUT HANDLER
     function handleCheckOut() {
       const ticketId = document.getElementById('outTiketSelect').value;
       const outHour = parseInt(document.getElementById('outJam').value);
@@ -1018,21 +1071,22 @@
         subtotal = subtotal * 0.8;
       }
 
-      // Mark paid
       ticket.paid = true;
       ticket.outHour = outHour;
       ticket.total = subtotal;
       ticket.method = method;
       totalRevenue += subtotal;
 
-      // Free slot
       const slot = slots.find(s => s.id === ticket.slotId);
       if (slot) {
         slot.occupied = false;
         slot.vehicle = null;
       }
 
-      triggerBarrierGate(true, 'GATE KELUAR TERBUKA');
+      selectedSlotId = null;
+      document.getElementById('checkoutBanner').innerHTML = `✔ Check-out sukses! Slot <b>${ticket.slotId}</b> telah kosong kembali.`;
+
+      triggerBarrierGate(true, 'GATE KELUAR DIBUKA');
       renderSlots();
       renderTransactions();
       showReceipt(ticket);
@@ -1044,15 +1098,20 @@
 
       transactions.slice(0, 10).forEach(t => {
         const tr = document.createElement('tr');
-        const dur = t.outHour ? `${t.outHour - t.inHour} Jam` : 'Aktif';
+        const jamKet = t.outHour ? `${t.inHour}:00 - ${t.outHour}:00` : `${t.inHour}:00 - ...`;
         tr.innerHTML = `
-          <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${t.ticket}</td>
-          <td>${t.vehicle.plate}</td>
+          <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-blue);">${t.ticket}</td>
+          <td><b>${t.vehicle.plate}</b></td>
           <td><span style="font-size: 10px; color: var(--text-muted);">${t.vehicle.type}</span></td>
-          <td><strong style="color: var(--accent-blue);">${t.slotId}</strong></td>
-          <td>${dur}</td>
+          <td><strong style="color: var(--text-dark);">${t.slotId}</strong></td>
+          <td>${jamKet}</td>
           <td><span class="badge-pill ${t.paid ? 'badge-paid' : 'badge-active'}">${t.paid ? 'LUNAS' : 'PARKIR'}</span></td>
         `;
+        tr.onclick = () => {
+          if (!t.paid) {
+            onSlotCardClicked(slots.find(s => s.id === t.slotId));
+          }
+        };
         tbody.appendChild(tr);
       });
     }
@@ -1065,8 +1124,6 @@
       document.getElementById('rMetode').innerText = t.method;
       document.getElementById('rTotal').innerText = formatRupiah(t.total);
       document.getElementById('receiptModal').classList.add('show');
-      playBeep(523, 0.1);
-      setTimeout(() => playBeep(659, 0.15), 100);
     }
 
     function closeReceiptModal() {
