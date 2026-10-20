@@ -668,6 +668,15 @@ public class AdminGUI extends JFrame {
         String merk = res.merk.trim();
         String tipe = res.tipe.trim();
 
+        // 0. CEK KEAKURATAN DETEKSI (Plat harus terdeteksi jelas dan valid)
+        if (!AIVisionService.isValidPlate(plat)) {
+            cctvVehicleDetected = false;
+            cctvHudText = "STANDBY - KENDARAAN BELUM TERDETEKSI JELAS";
+            lblCCTVStatus.setText("<html><span style='color:#94a3b8;font-size:10px;'>👁️ Kamera aktif memantau gerbang... (Menunggu kendaraan dengan plat jelas)</span></html>");
+            startCCTVCooldownCountdown(4);
+            return;
+        }
+
         // 1. CEK DUPLIKASI KE GEDUNG PARKIR (Apakah mobil sedang parkir di dalam?)
         SlotParkir sudahParkir = gedung.cariSlotDenganPlat(plat);
         if (sudahParkir != null) {

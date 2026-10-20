@@ -142,7 +142,7 @@ public class AIVisionService {
                 ? "orion"
                 : modelName.trim();
 
-            String prompt = "Identifikasi kendaraan pada gambar ini secara akurat. Berikan plat nomor kendaraan (plat), merk dan tipe/seri mobil/motor (merk), dan tipe kategori ('MOBIL', 'MOTOR', atau 'MOBIL_LISTRIK'). JAWAB HANYA DALAM FORMAT JSON SEPERTI INI TANPA TEKS LAIN: {\"plat\":\"...\", \"merk\":\"...\", \"tipe\":\"MOBIL|MOTOR|MOBIL_LISTRIK\"}";
+            String prompt = "Identifikasi kendaraan pada gambar ini secara akurat. Berikan plat nomor kendaraan (plat), merk dan tipe/seri mobil/motor (merk), dan tipe kategori ('MOBIL', 'MOTOR', atau 'MOBIL_LISTRIK'). Jika tidak ada kendaraan atau plat nomor tidak terbaca, kembalikan: {\"plat\":\"TIDAK_ADA\", \"merk\":\"-\", \"tipe\":\"MOBIL\"}. JAWAB HANYA DALAM FORMAT JSON SEPERTI CONTOH TANPA TEKS LAIN: {\"plat\":\"...\", \"merk\":\"...\", \"tipe\":\"MOBIL|MOTOR|MOBIL_LISTRIK\"}";
 
             String requestBody;
             boolean isOpenAIFormat = url.contains("/v1/") || url.contains("openai.com") || url.contains("ts.net");
@@ -247,10 +247,30 @@ public class AIVisionService {
 
         if (plat == null || plat.isEmpty()) plat = extractPlatRegex(content);
         if (plat == null || plat.isEmpty()) plat = extractPlatRegex(json);
-        if (plat == null || plat.isEmpty()) plat = "W 1932 VZ";
-        if (merk == null || merk.isEmpty()) merk = "Daihatsu Xenia";
+        if (plat == null || plat.isEmpty() || plat.toUpperCase().contains("TIDAK") || plat.toUpperCase().contains("NONE")) {
+            plat = "TIDAK_ADA";
+        }
+        if (merk == null || merk.isEmpty() || merk.toUpperCase().contains("TIDAK")) {
+            merk = "-";
+        }
 
-        return new DetectionResult(plat, merk, tipe, content, true, "Berhasil dianalisis oleh Model AI (" + tipe + ")", false);
+        boolean isValid = isValidPlate(plat);
+        String statusMsg = isValid 
+            ? "Berhasil dianalisis oleh Model AI (" + tipe + " - " + plat + ")"
+            : "AI merespons: Kendaraan / plat tidak terdeteksi jelas.";
+
+        return new DetectionResult(plat, merk, tipe, content, isValid, statusMsg, false);
+    }
+
+    public static boolean isValidPlate(String plat) {
+        if (plat == null) return false;
+        String clean = plat.trim().toUpperCase();
+        if (clean.isEmpty() || clean.equals("-") || clean.contains("TIDAK") || clean.contains("NONE") || clean.contains("UNKNOWN") || clean.contains("NULL")) {
+            return false;
+        }
+        boolean hasDigit = clean.matches(".*\\d+.*");
+        boolean hasLetter = clean.matches(".*[A-Z]+.*");
+        return hasDigit && hasLetter && clean.length() >= 4 && clean.length() <= 14;
     }
 
     private static String extractJsonField(String text, String key) {
