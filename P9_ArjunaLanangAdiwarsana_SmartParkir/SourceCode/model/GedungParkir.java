@@ -52,12 +52,22 @@ public class GedungParkir {
             return null;
         }
 
+        // Jika Mobil Listrik, coba prioritaskan slot khusus MOBIL_LISTRIK (EV Charger) terlebih dahulu
+        if (k.isMobilListrik()) {
+            for (SlotParkir slot : daftarSlot) {
+                if (!slot.isTerisi() && "MOBIL_LISTRIK".equals(slot.getTipeSlot())) {
+                    return slot;
+                }
+            }
+        }
+
         // Prioritaskan mencari slot dari lantai terendah yang masih KOSONG dan COCOK
         SlotParkir kandidat = null;
         for (SlotParkir slot : daftarSlot) {
             if (!slot.isTerisi() && slot.cocokUntuk(k)) {
                 if (kandidat == null || slot.getLantai() < kandidat.getLantai()) {
                     kandidat = slot;
+                    break; // Ambil slot kosong pertama yang cocok
                 }
             }
         }
@@ -192,5 +202,21 @@ public class GedungParkir {
 
     public double getTotalPendapatan() {
         return totalPendapatan;
+    }
+
+    public double getTarifJamPertamaMobil() {
+        return tarifJamPertamaMobil;
+    }
+
+    public double getTarifPerJamMobil() {
+        return tarifPerJamMobil;
+    }
+
+    public double getTarifJamPertamaMotor() {
+        return tarifJamPertamaMotor;
+    }
+
+    public double getTarifPerJamMotor() {
+        return tarifPerJamMotor;
     }
 }

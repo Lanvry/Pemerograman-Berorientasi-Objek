@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SmartParkir Admin Dashboard - PENS PSDKU</title>
+  <title>SmartParkir Command Center - Blueprint Realistis 45 Slot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg-light: #f8fafc;
@@ -19,6 +19,7 @@
       --accent-red: #e11d48;
       --accent-yellow: #d97706;
       --accent-purple: #7c3aed;
+      --accent-teal: #0d9488;
       --text-dark: #0f172a;
       --text-body: #334155;
       --text-muted: #64748b;
@@ -27,6 +28,9 @@
       --red-soft: #fff1f2;
       --purple-soft: #f5f3ff;
       --blue-soft: #eff6ff;
+      --teal-soft: #f0fdfa;
+      --aisle-bg: #f8fafc;
+      --pillar-color: #475569;
     }
 
     * {
@@ -47,10 +51,10 @@
 
     /* TOP NAVBAR */
     header {
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border-color);
-      padding: 14px 28px;
+      padding: 12px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -66,21 +70,21 @@
     }
 
     .brand-logo {
-      width: 40px;
-      height: 40px;
+      width: 38px;
+      height: 38px;
       background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 20px;
+      font-size: 19px;
       color: white;
       box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
     }
 
     .brand-text h1 {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.3px;
       color: var(--text-dark);
@@ -93,15 +97,15 @@
 
     .stats-bar {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
     }
 
     .stat-pill {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      padding: 6px 14px;
-      border-radius: 12px;
+      padding: 5px 12px;
+      border-radius: 10px;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
@@ -109,25 +113,25 @@
     }
 
     .stat-pill span {
-      font-size: 9px;
+      font-size: 8.5px;
       color: var(--text-muted);
       text-transform: uppercase;
       font-weight: 700;
     }
 
     .stat-pill strong {
-      font-size: 14px;
+      font-size: 13px;
       font-family: 'JetBrains Mono', monospace;
     }
 
     /* MAIN CONTAINER */
     .container {
-      max-width: 1480px;
+      max-width: 1560px;
       margin: 0 auto;
-      padding: 24px;
+      padding: 18px 22px;
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
-      gap: 24px;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 20px;
       flex: 1;
       width: 100%;
     }
@@ -136,12 +140,12 @@
     .card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 22px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .card-header {
@@ -151,365 +155,481 @@
     }
 
     .card-title {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 800;
       color: var(--text-dark);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
-    /* BARRIER GATE ANIMATION BOX */
-    .gate-visual-box {
+    /* BARRIER GATE ANIMATION */
+    .gate-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
       background: var(--card-inner);
+      padding: 6px 12px;
+      border-radius: 8px;
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 12px 18px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
     }
 
-    .gate-canvas {
-      display: flex;
-      align-items: center;
-      gap: 14px;
+    .gate-box-canvas {
+      position: relative;
+      width: 44px;
+      height: 24px;
     }
 
-    .pillar {
-      width: 14px;
-      height: 38px;
+    .pillar-stand {
+      position: absolute;
+      bottom: 2px;
+      left: 4px;
+      width: 8px;
+      height: 16px;
       background: #64748b;
-      border-radius: 3px;
+      border-radius: 2px;
     }
 
     .barrier-arm {
-      width: 60px;
-      height: 6px;
-      background: repeating-linear-gradient(45deg, #ef4444, #ef4444 8px, #ffffff 8px, #ffffff 16px);
-      border-radius: 3px;
-      transform-origin: 0% 50%;
+      position: absolute;
+      bottom: 12px;
+      left: 8px;
+      width: 32px;
+      height: 3.5px;
+      background: var(--accent-red);
+      transform-origin: 2px 2px;
       transform: rotate(0deg);
-      transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.3s;
+      border-radius: 2px;
     }
 
     .barrier-arm.open {
-      transform: rotate(-75deg);
-      background: repeating-linear-gradient(45deg, #10b981, #10b981 8px, #ffffff 8px, #ffffff 16px);
+      transform: rotate(-65deg);
+      background: var(--accent-green);
     }
 
     .gate-badge {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 12px;
-      background: rgba(239, 68, 68, 0.1);
       color: var(--accent-red);
-      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .gate-badge.open {
-      background: rgba(16, 185, 129, 0.12);
       color: var(--accent-green);
     }
 
-    /* SLOTS MATRIX */
-    .floor-tabs {
-      display: flex;
-      gap: 8px;
-    }
-
-    .tab-btn {
-      background: var(--card-inner);
+    /* REAL BLUEPRINT DENAH PARKIR */
+    .blueprint-outer {
+      background: #ffffff;
       border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .tab-btn.active {
-      background: var(--accent-blue);
-      color: white;
-      border-color: var(--accent-blue);
-    }
-
-    .slots-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-
-    .slot-item {
-      border: 1px solid var(--border-color);
-      border-radius: 14px;
+      border-radius: 12px;
       padding: 14px;
       display: flex;
       flex-direction: column;
+      gap: 10px;
+      overflow-x: auto;
+    }
+
+    .blueprint-row-section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .section-label {
+      font-size: 10.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bays-strip {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+
+    /* PARKING BAY STYLING */
+    .parking-bay {
+      width: 60px;
+      height: 74px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
       justify-content: space-between;
-      min-height: 115px;
-      position: relative;
+      padding: 4px;
       cursor: pointer;
-      transition: all 0.25s ease;
-      background: var(--card-bg);
-    }
-
-    .slot-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-    }
-
-    .slot-item.selected {
-      border: 2.5px solid var(--border-focus) !important;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
-    }
-
-    .slot-item.available {
+      transition: all 0.2s ease;
+      position: relative;
       background: var(--green-soft);
-      border-color: #a7f3d0;
+      user-select: none;
+      flex-shrink: 0;
     }
 
-    .slot-item.available::before {
-      content: '';
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-green);
-      box-shadow: 0 0 8px var(--accent-green);
-      animation: pulseGlow 1.8s infinite;
+    .parking-bay:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
     }
 
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.4; transform: scale(0.9); }
-      50% { opacity: 1; transform: scale(1.3); }
+    .parking-bay.selected {
+      border: 2px solid var(--border-focus) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25) !important;
+      transform: translateY(-2px);
     }
 
-    .slot-item.occupied {
+    .parking-bay.occupied {
       background: var(--red-soft);
       border-color: #fecdd3;
     }
 
-    .slot-item.ev-charging {
+    .parking-bay.ev-slot {
       background: var(--purple-soft);
-      border-color: #ddd6fe;
+      border-color: #e9d5ff;
     }
 
-    .slot-header {
+    .parking-bay.motor-slot {
+      background: var(--teal-soft);
+      border-color: #ccfbf1;
+    }
+
+    .bay-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
 
-    .slot-id {
-      font-size: 13px;
+    .bay-id {
+      font-size: 9.5px;
       font-weight: 800;
-      font-family: 'JetBrains Mono', monospace;
       color: var(--text-dark);
-    }
-
-    .slot-type-badge {
-      font-size: 10px;
-      font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.7);
-      color: var(--text-muted);
-    }
-
-    .slot-body {
-      text-align: center;
-      margin: 8px 0;
-    }
-
-    .slot-plate {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--accent-red);
-      letter-spacing: 0.5px;
     }
 
-    .slot-model {
-      font-size: 11px;
-      color: var(--text-muted);
+    .bay-icon {
+      font-size: 9px;
+    }
+
+    .bay-body {
+      text-align: center;
       margin-top: 2px;
     }
 
-    .slot-status-text {
-      font-size: 12px;
+    .bay-plate {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent-red);
+      line-height: 1.1;
+      word-break: break-all;
+    }
+
+    .bay-model {
+      font-size: 7.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    .bay-status-free {
+      font-size: 8.5px;
       font-weight: 800;
       color: var(--accent-green);
     }
 
-    /* TABS ACTIONS */
-    .tabs-actions {
-      display: flex;
-      border-bottom: 1px solid var(--border-color);
-      margin-bottom: 14px;
-    }
-
-    .action-tab-btn {
-      flex: 1;
-      padding: 10px;
-      text-align: center;
-      background: none;
-      border: none;
+    .bay-subtext {
+      font-size: 7.5px;
       color: var(--text-muted);
-      font-size: 13px;
+    }
+
+    /* DRIVING AISLE */
+    .driveway-aisle {
+      background: var(--aisle-bg);
+      border-top: 1px dashed #cbd5e1;
+      border-bottom: 1px dashed #cbd5e1;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: #94a3b8;
+      font-size: 9px;
       font-weight: 700;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s;
+      letter-spacing: 1px;
     }
 
-    .action-tab-btn.active {
-      color: var(--accent-blue);
+    /* ARCHITECTURAL STRUCTURAL PILLARS & CORES */
+    .pillar-column {
+      width: 7px;
+      height: 74px;
+      background: var(--pillar-color);
+      border-radius: 2px;
+      flex-shrink: 0;
     }
 
-    .action-tab-btn.active::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: var(--accent-blue);
+    .stair-core {
+      width: 64px;
+      height: 74px;
+      background: #f1f5f9;
+      border: 1px dashed #94a3b8;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 8px;
+      font-weight: 700;
+      color: #475569;
+      padding: 2px;
+      flex-shrink: 0;
     }
 
+    .facility-box {
+      background: #f1f5f9;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 74px;
+      flex-shrink: 0;
+    }
+
+    .facility-box strong {
+      font-size: 9px;
+      color: var(--text-dark);
+    }
+
+    .facility-box span {
+      font-size: 8px;
+      color: var(--text-muted);
+    }
+
+    /* RIGHT CONTROL PANEL */
+    .controls-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* TARIFF COMPARISON PILLS */
+    .tariff-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+
+    .tariff-pill {
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tariff-pill.motor {
+      background: var(--teal-soft);
+      border-color: #ccfbf1;
+    }
+
+    .tariff-pill.car {
+      background: var(--blue-soft);
+      border-color: #dbeafe;
+    }
+
+    .tariff-pill.ev {
+      background: var(--purple-soft);
+      border-color: #f3e8ff;
+    }
+
+    .tariff-title {
+      font-size: 10.5px;
+      font-weight: 800;
+    }
+
+    .tariff-pill.motor .tariff-title { color: var(--accent-teal); }
+    .tariff-pill.car .tariff-title { color: var(--accent-blue); }
+    .tariff-pill.ev .tariff-title { color: var(--accent-purple); }
+
+    .tariff-rate {
+      font-size: 12px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dark);
+    }
+
+    .tariff-sub {
+      font-size: 8.5px;
+      color: var(--text-muted);
+    }
+
+    /* FORM STYLES */
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 12px;
+      gap: 4px;
+      margin-bottom: 8px;
     }
 
-    .form-group label {
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    label {
       font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-body);
     }
 
-    .form-input, .form-select {
+    input, select {
       background: var(--bg-light);
       border: 1px solid var(--border-color);
-      padding: 10px 14px;
-      border-radius: 10px;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 12px;
       color: var(--text-dark);
-      font-size: 13px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: all 0.2s;
     }
 
-    .form-input:focus, .form-select:focus {
-      border-color: var(--accent-blue);
+    input:focus, select:focus {
+      border-color: var(--border-focus);
       background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
     }
 
-    .btn {
+    .btn-action {
       width: 100%;
-      padding: 12px;
-      border-radius: 10px;
+      padding: 10px;
       border: none;
+      border-radius: 8px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      transition: all 0.2s ease;
+      gap: 6px;
+      transition: all 0.2s;
     }
 
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
+    .btn-blue {
+      background: var(--accent-blue);
       color: white;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
     }
 
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+    .btn-blue:hover {
+      background: #1d4ed8;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
     }
 
-    .btn-success {
-      background: linear-gradient(135deg, var(--accent-green), #047857);
+    .btn-green {
+      background: var(--accent-green);
       color: white;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
     }
 
-    .btn-success:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35);
+    .btn-green:hover {
+      background: #047857;
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.25);
     }
 
-    .click-hint-box {
+    /* NOTICE & BILLING PREVIEW */
+    .alert-banner {
       background: var(--blue-soft);
       border: 1px solid #bfdbfe;
       border-radius: 8px;
-      padding: 8px 12px;
-      font-size: 11px;
-      color: #1e40af;
-      margin-bottom: 12px;
+      padding: 8px 10px;
+      font-size: 10.5px;
+      color: var(--accent-blue);
+      line-height: 1.3;
     }
 
-    /* RECENT TRANSACTIONS TABLE */
+    .billing-box {
+      background: var(--blue-soft);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .billing-box span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .billing-box strong {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--accent-blue);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* LOG TABLE */
     .table-container {
-      max-height: 220px;
+      max-height: 160px;
       overflow-y: auto;
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: 8px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 12px;
+      font-size: 11px;
     }
 
     th {
       background: var(--card-inner);
       color: var(--text-muted);
-      padding: 10px 12px;
-      text-align: left;
-      font-weight: 600;
-      position: sticky;
-      top: 0;
+      font-weight: 700;
+      padding: 7px 8px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 10px;
     }
 
     td {
-      padding: 10px 12px;
+      padding: 6px 8px;
+      text-align: center;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-body);
     }
 
-    tr:hover td {
-      background: rgba(241, 245, 249, 0.8);
+    tr:hover {
+      background: #f8fafc;
       cursor: pointer;
-    }
-
-    .badge-pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 700;
     }
 
     .badge-paid {
       background: var(--green-soft);
       color: var(--accent-green);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 9.5px;
     }
 
-    .badge-active {
-      background: #fef3c7;
-      color: #b45309;
+    .badge-parking {
+      background: var(--red-soft);
+      color: var(--accent-red);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 9.5px;
     }
 
     /* RECEIPT MODAL */
@@ -519,7 +639,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(15, 23, 42, 0.5);
+      background: rgba(15, 23, 42, 0.4);
       backdrop-filter: blur(4px);
       display: none;
       align-items: center;
@@ -533,10 +653,9 @@
 
     .receipt-card {
       background: #ffffff;
-      color: #0f172a;
-      width: 360px;
-      border-radius: 16px;
-      padding: 24px;
+      width: 350px;
+      border-radius: 14px;
+      padding: 20px;
       box-shadow: 0 20px 40px rgba(0,0,0,0.15);
       border: 1px solid var(--border-color);
     }
@@ -544,36 +663,36 @@
     .receipt-header {
       text-align: center;
       border-bottom: 2px dashed #cbd5e1;
-      padding-bottom: 14px;
-      margin-bottom: 14px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
     }
 
     .receipt-header h3 {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
     }
 
     .receipt-row {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 12px;
+      margin-bottom: 6px;
+      font-size: 11.5px;
     }
 
     .receipt-total {
       border-top: 2px dashed #cbd5e1;
-      margin-top: 12px;
-      padding-top: 12px;
+      margin-top: 10px;
+      padding-top: 10px;
       font-weight: 800;
-      font-size: 14px;
+      font-size: 13.5px;
       display: flex;
       justify-content: space-between;
     }
 
     .receipt-btn-close {
-      margin-top: 18px;
+      margin-top: 16px;
       width: 100%;
-      padding: 10px;
+      padding: 9px;
       background: var(--text-dark);
       color: white;
       border: none;
@@ -591,171 +710,254 @@
       <div class="brand-logo">P</div>
       <div class="brand-text">
         <h1>SmartParkir Command Center</h1>
-        <p>Mall Grand PENS Plaza • Sistem Otomasi Slot Bertingkat</p>
+        <p>Mall Grand PENS Plaza • Blueprint Realistis 45 Slot (Zona Motor & Mobil Terpisah)</p>
       </div>
     </div>
     <div class="stats-bar">
       <div class="stat-pill">
         <span>Total Slot</span>
-        <strong id="statTotal">9</strong>
+        <strong id="statTotal">45</strong>
       </div>
       <div class="stat-pill">
         <span>Tersedia</span>
-        <strong id="statAvailable" style="color: var(--accent-green);">8</strong>
+        <strong id="statAvailable" style="color: var(--accent-green);">41</strong>
       </div>
       <div class="stat-pill">
         <span>Terisi</span>
-        <strong id="statOccupied" style="color: var(--accent-red);">1</strong>
+        <strong id="statOccupied" style="color: var(--accent-red);">4</strong>
       </div>
       <div class="stat-pill">
-        <span>Total Kas</span>
+        <span>Kas Masuk</span>
         <strong id="statRevenue" style="color: var(--accent-yellow);">Rp 0</strong>
       </div>
     </div>
   </header>
 
-  <!-- MAIN DASHBOARD CONTENT -->
+  <!-- MAIN CONTAINER -->
   <div class="container">
 
-    <!-- LEFT: PARKING GRID & GATE STATUS -->
+    <!-- LEFT: REAL ARCHITECTURAL BLUEPRINT -->
     <div class="card">
       <div class="card-header">
         <div>
-          <div class="card-title">🅿️ Denah Slot Parkir Realtime</div>
-          <div style="font-size: 11px; color: var(--accent-blue); margin-top: 2px;">💡 Klik mobil parkir pada denah untuk langsung check-out otomatis</div>
+          <div class="card-title">DENAH PARKIR REALTIME (ARCHITECTURAL BLUEPRINT)</div>
+          <p style="font-size: 11px; color: var(--accent-blue); margin-top: 2px;">
+            💡 Klik langsung pada mobil di denah untuk langsung check-out otomatis!
+          </p>
         </div>
-        <div class="floor-tabs">
-          <button class="tab-btn active" onclick="switchFloor('ALL')">Semua</button>
-          <button class="tab-btn" onclick="switchFloor(1)">Lantai 1</button>
-          <button class="tab-btn" onclick="switchFloor(2)">Lantai 2</button>
+        <div class="gate-indicator">
+          <div class="gate-box-canvas">
+            <div class="pillar-stand"></div>
+            <div class="barrier-arm" id="barrierArm"></div>
+          </div>
+          <span class="gate-badge" id="gateBadge">PORTAL TERTUTUP</span>
         </div>
       </div>
 
-      <!-- ANIMATED BARRIER GATE -->
-      <div class="gate-visual-box">
-        <div class="gate-canvas">
-          <div class="pillar"></div>
-          <div class="barrier-arm" id="barrierArm"></div>
-          <div>
-            <div style="font-size: 13px; font-weight: 700;" id="gateTitle">Portal Barrier Gate</div>
-            <div style="font-size: 11px; color: var(--text-muted);" id="gateSub">Sensor Otomatis Masuk & Keluar</div>
+      <!-- BLUEPRINT DRAWING -->
+      <div class="blueprint-outer" id="blueprintContainer">
+        
+        <!-- BARIS A (MOTOR ZONE) + CONTROL OFFICE & RAMP -->
+        <div class="blueprint-row-section">
+          <div class="section-label" style="color: var(--accent-teal);">
+            <span>BARIS A • ZONA PARKIR MOTOR (9 SLOT)</span>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="bays-strip" id="rowASlots">
+              <!-- Rendered via JS -->
+            </div>
+            <div style="display: flex; gap: 4px; margin-left: auto;">
+              <div class="facility-box" style="width: 80px;">
+                <strong>POS KONTROL</strong>
+                <span>CCTV & Staff</span>
+              </div>
+              <div class="facility-box" style="width: 80px; background: #eef2ff;">
+                <strong style="color: var(--accent-blue);">RAMP MASUK</strong>
+                <span>i = 18% ↗</span>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="gate-badge" id="gateBadge">PORTAL TERTUTUP</div>
+
+        <!-- DRIVEWAY AISLE 1 -->
+        <div class="driveway-aisle">
+          <span>➡ ➡ ➡  LAJUR MANUVER UTAMA 1 (MASUK & PARKIR)  ➡ ➡ ➡</span>
+        </div>
+
+        <!-- BARIS B (CENTRAL ISLAND TOP) -->
+        <div class="blueprint-row-section">
+          <div class="section-label" style="color: var(--accent-blue);">
+            <span>BARIS B • ZONA MOBIL (11 SLOT + TANGGA DARURAT)</span>
+          </div>
+          <div class="bays-strip" id="rowBSlots">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <!-- BARIS C (CENTRAL ISLAND BOTTOM) -->
+        <div class="blueprint-row-section">
+          <div class="section-label" style="color: var(--accent-blue);">
+            <span>BARIS C • ZONA MOBIL (11 SLOT + TANGGA DARURAT)</span>
+          </div>
+          <div class="bays-strip" id="rowCSlots">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <!-- DRIVEWAY AISLE 2 -->
+        <div class="driveway-aisle">
+          <span>⬅ ⬅ ⬅  LAJUR MANUVER UTAMA 2 (MENUJU KASIR & KELUAR)  ⬅ ⬅ ⬅</span>
+        </div>
+
+        <!-- BARIS D (BOTTOM ROW: 12 MOBIL + 2 EV CHARGER) -->
+        <div class="blueprint-row-section">
+          <div class="section-label" style="color: var(--text-dark);">
+            <span>BARIS D • ZONA MOBIL (12 SLOT) & EV CHARGER (2 SLOT)</span>
+          </div>
+          <div class="bays-strip" id="rowDSlots">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
       </div>
 
-      <!-- SLOTS GRID -->
-      <div class="slots-grid" id="slotsGrid">
-        <!-- Generated Dynamically via JS -->
-      </div>
-
-      <div style="display: flex; justify-content: center; gap: 16px; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
-        <span><b style="color: var(--accent-green);">●</b> Tersedia</span>
-        <span><b style="color: var(--accent-red);">●</b> Terisi (Klik utk Check-Out)</span>
-        <span><b style="color: var(--accent-purple);">●</b> EV Charger</span>
+      <!-- LEGEND -->
+      <div style="display: flex; justify-content: center; gap: 16px; font-size: 10px; color: var(--text-muted); padding-top: 4px;">
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--accent-green);">●</span> Tersedia</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--accent-red);">●</span> Terisi (Klik Check-Out)</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--accent-purple);">●</span> EV Charger</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--accent-teal);">●</span> Zona Motor</span>
+        <span style="display: flex; align-items: center; gap: 4px;"><span style="color: var(--accent-blue);">●</span> Zona Mobil</span>
       </div>
     </div>
 
-    <!-- RIGHT: QUICK ACTIONS & LOGS -->
-    <div style="display: flex; flex-direction: column; gap: 24px;">
+    <!-- RIGHT: CONTROLS & CHECK-OUT -->
+    <div class="controls-wrapper">
 
-      <!-- ACTION CARD -->
-      <div class="card">
-        <div class="tabs-actions">
-          <button class="action-tab-btn" id="tabBtnCheckin" onclick="switchActionTab('checkin')">Check-In Masuk</button>
-          <button class="action-tab-btn active" id="tabBtnCheckout" onclick="switchActionTab('checkout')">Check-Out & Kasir</button>
-        </div>
-
-        <!-- FORM CHECK-IN -->
-        <div id="checkinTab" style="display: none;">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="form-group">
-              <label>Nomor Plat Kendaraan</label>
-              <input type="text" id="inPlat" class="form-input" placeholder="Contoh: B 1234 ABC" value="L 8899 EV">
-            </div>
-            <div class="form-group">
-              <label>Tipe Kendaraan</label>
-              <select id="inTipe" class="form-select">
-                <option value="MOBIL_LISTRIK">Mobil Listrik (EV)</option>
-                <option value="MOBIL">Mobil Reguler</option>
-                <option value="MOTOR">Sepeda Motor</option>
-              </select>
-            </div>
+      <!-- SKEMA TARIF RESMI (MOTOR VS MOBIL VS EV) -->
+      <div class="card" style="padding: 14px;">
+        <div class="card-title" style="font-size: 12.5px;">SKEMA TARIF PARKIR RESMI</div>
+        <div class="tariff-grid">
+          <div class="tariff-pill motor">
+            <div class="tariff-title">🛵 MOTOR</div>
+            <div class="tariff-rate">Rp 2.000</div>
+            <div class="tariff-sub">+Rp 1.000 / jam berikutnya</div>
+            <div class="tariff-sub" style="color: var(--accent-teal); font-weight: 700;">Baris A (9 Slot)</div>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="form-group">
-              <label>Merk / Model Kendaraan</label>
-              <input type="text" id="inMerk" class="form-input" placeholder="Contoh: Hyundai Ioniq 5" value="Hyundai Ioniq 5">
-            </div>
-            <div class="form-group">
-              <label>Jam Masuk (0 - 23)</label>
-              <input type="number" id="inJam" class="form-input" min="0" max="23" value="10">
-            </div>
+          <div class="tariff-pill car">
+            <div class="tariff-title">🚗 MOBIL</div>
+            <div class="tariff-rate">Rp 5.000</div>
+            <div class="tariff-sub">+Rp 3.000 / jam berikutnya</div>
+            <div class="tariff-sub" style="color: var(--accent-blue); font-weight: 700;">Baris B, C, D</div>
           </div>
-          <button class="btn btn-primary" onclick="handleCheckIn()">
-            <span>🚗</span> TAP-IN & ALOKASIKAN SLOT TERDEKAT
-          </button>
-        </div>
-
-        <!-- FORM CHECK-OUT (DEFAULT AKTIF) -->
-        <div id="checkoutTab">
-          <div class="click-hint-box" id="checkoutBanner">
-            ✔ Kendaraan <b>B 1234 ABC</b> terpilih otomatis! Klik tombol bayar untuk langsung check-out.
+          <div class="tariff-pill ev">
+            <div class="tariff-title">⚡ MOBIL LISTRIK</div>
+            <div class="tariff-rate">Diskon 20%</div>
+            <div class="tariff-sub">Gratis Fasilitas Fast Cas</div>
+            <div class="tariff-sub" style="color: var(--accent-purple); font-weight: 700;">Slot EV-D13, D14</div>
           </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div class="form-group">
-              <label>Pilih Tiket / Plat</label>
-              <select id="outTiketSelect" class="form-select" onchange="onSelectTicketChanged()">
-                <!-- Populated by JS -->
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Jam Keluar (0 - 23)</label>
-              <input type="number" id="outJam" class="form-input" min="0" max="23" value="12" oninput="previewBilling()">
-            </div>
-          </div>
-          <div style="background: var(--card-inner); padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px dashed var(--border-color);">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
-              <span style="color: var(--text-muted);">Durasi & Tagihan:</span>
-              <strong id="billingPreview" style="color: var(--accent-blue); font-size: 14px;">Rp 14.000 (4 Jam)</strong>
-            </div>
-            <div style="font-size: 11px; color: var(--accent-green); font-weight: 600;" id="evDiscountNotice"></div>
-          </div>
-          <div class="form-group">
-            <label>Metode Pembayaran</label>
-            <select id="outMetode" class="form-select">
-              <option value="E_MONEY">e-Money / Flazz (Tap Reader)</option>
-              <option value="QRIS">QRIS Dinamis</option>
-              <option value="CASH">Tunai (Pos Kasir)</option>
-            </select>
-          </div>
-          <button class="btn btn-success" onclick="handleCheckOut()">
-            <span>💳</span> BAYAR & BUKA GATE KELUAR
-          </button>
         </div>
       </div>
 
-      <!-- RECENT TRANSACTION TABLE -->
-      <div class="card" style="flex: 1;">
-        <div class="card-header">
-          <div class="card-title">
-            <span>📋 Riwayat Transaksi Gate</span>
+      <!-- CHECK-IN & CHECK-OUT FORMS -->
+      <div class="card" style="padding: 14px;">
+        <!-- CHECK-IN FORM -->
+        <div id="checkinSection">
+          <div class="card-title" style="font-size: 13px; margin-bottom: 8px;">CHECK-IN (GATE MASUK)</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nomor Plat:</label>
+              <input type="text" id="inPlat" value="B 8899 PBO" placeholder="B 1234 ABC">
+            </div>
+            <div class="form-group">
+              <label>Tipe Kendaraan:</label>
+              <select id="inTipe" onchange="onCheckInTypeChanged()">
+                <option value="MOBIL">MOBIL</option>
+                <option value="MOTOR">MOTOR</option>
+                <option value="MOBIL_LISTRIK">MOBIL_LISTRIK (EV)</option>
+              </select>
+            </div>
           </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Merk / Model:</label>
+              <input type="text" id="inMerk" value="Mitsubishi Xpander" placeholder="Toyota Avanza">
+            </div>
+            <div class="form-group">
+              <label>Jam Masuk (0-23):</label>
+              <input type="number" id="inJam" value="11" min="0" max="23">
+            </div>
+          </div>
+          <div style="font-size: 10.5px; font-weight: 700; color: var(--accent-blue); margin-bottom: 8px;" id="inAlokasiHint">
+            🚗 Dialokasikan ke Zona Mobil (Baris B, C, atau D)
+          </div>
+          <button class="btn-action btn-blue" onclick="handleCheckIn()">🚗 TAP IN & CARI SLOT OTOMATIS</button>
         </div>
+
+        <hr style="border: none; border-top: 1px solid var(--border-color); margin: 12px 0;">
+
+        <!-- CHECK-OUT FORM -->
+        <div id="checkoutSection">
+          <div class="card-title" style="font-size: 13px; margin-bottom: 6px;">CHECK-OUT & KASIR</div>
+          
+          <div class="alert-banner" id="checkoutNotice" style="margin-bottom: 8px;">
+            💡 Klik mobil parkir pada denah untuk memilih otomatis
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Pilih Tiket / Kendaraan:</label>
+              <select id="outTiketSelect" onchange="onSelectTicketChanged()">
+                <!-- Populated via JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Jam Keluar (0-23):</label>
+              <input type="number" id="outJam" value="12" min="0" max="23" oninput="previewBilling()">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Metode Bayar:</label>
+              <select id="outMetode">
+                <option value="E_MONEY">E-Money / Flazz</option>
+                <option value="QRIS">QRIS Statis/Dinamis</option>
+                <option value="CASH">Tunai (Cash)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Nominal Bayar (Rp):</label>
+              <input type="number" id="outUang" value="14000">
+            </div>
+          </div>
+
+          <div class="billing-box">
+            <span>Estimasi Tagihan:</span>
+            <strong id="billingPreview">Rp 14.000 (4 Jam)</strong>
+          </div>
+
+          <button class="btn-action btn-green" onclick="handleCheckOut()">💳 BAYAR & BUKA GATE</button>
+        </div>
+      </div>
+
+      <!-- LOG TABLE -->
+      <div class="card" style="padding: 14px;">
+        <div class="card-title" style="font-size: 12.5px;">LOG RIWAYAT TRANSAKSI KASIR</div>
         <div class="table-container">
           <table>
             <thead>
               <tr>
                 <th>No. Tiket</th>
-                <th>Plat Nomor</th>
+                <th>Plat</th>
                 <th>Tipe</th>
                 <th>Slot</th>
                 <th>Jam</th>
                 <th>Status</th>
+                <th>Biaya</th>
               </tr>
             </thead>
-            <tbody id="txTableBody">
+            <tbody id="logTableBody">
               <!-- Rendered via JS -->
             </tbody>
           </table>
@@ -770,56 +972,109 @@
     <div class="receipt-card">
       <div class="receipt-header">
         <h3>MALL GRAND PENS PLAZA</h3>
-        <p style="font-size: 11px; color: var(--text-muted);">Smart Parking Struk Keluar</p>
+        <p style="font-size: 10px; color: var(--text-muted);">Bukti Resmi Pembayaran Parkir Digital</p>
       </div>
-      <div class="receipt-row">
-        <span>No. Tiket</span>
-        <strong id="rTiket">-</strong>
-      </div>
-      <div class="receipt-row">
-        <span>Kendaraan</span>
-        <strong id="rPlat">-</strong>
-      </div>
-      <div class="receipt-row">
-        <span>Slot Parkir</span>
-        <strong id="rSlot">-</strong>
-      </div>
-      <div class="receipt-row">
-        <span>Waktu</span>
-        <strong id="rWaktu">-</strong>
-      </div>
-      <div class="receipt-row">
-        <span>Metode</span>
-        <strong id="rMetode">-</strong>
-      </div>
-      <div class="receipt-total">
-        <span>TOTAL BAYAR</span>
-        <span id="rTotal" style="color: var(--accent-green);">Rp 0</span>
-      </div>
-      <button class="receipt-btn-close" onclick="closeReceiptModal()">TUTUP KUITANSI</button>
+      <div class="receipt-row"><span>No. Tiket:</span><strong id="rcTiket">-</strong></div>
+      <div class="receipt-row"><span>Plat Nomor:</span><strong id="rcPlat">-</strong></div>
+      <div class="receipt-row"><span>Jenis Kendaraan:</span><strong id="rcTipe">-</strong></div>
+      <div class="receipt-row"><span>Slot Parkir:</span><strong id="rcSlot">-</strong></div>
+      <div class="receipt-row"><span>Waktu Parkir:</span><strong id="rcJam">-</strong></div>
+      <div class="receipt-row"><span>Metode Bayar:</span><strong id="rcMetode">-</strong></div>
+      <div class="receipt-total"><span>TOTAL BIAYA:</span><span id="rcTotal" style="color: var(--accent-green);">-</span></div>
+      <button class="receipt-btn-close" onclick="closeReceipt()">TUTUP & BUKA PORTAL</button>
     </div>
   </div>
 
   <!-- JAVASCRIPT LOGIC -->
   <script>
-    const slots = [
-      { id: 'MTR-L1-01', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
-      { id: 'MTR-L1-02', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
-      { id: 'MTR-L1-03', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
-      { id: 'MBL-L1-01', floor: 1, type: 'MOBIL', occupied: true, vehicle: { plate: 'B 1234 ABC', type: 'MOBIL', model: 'Toyota Avanza' } },
-      { id: 'MBL-L1-02', floor: 1, type: 'MOBIL', occupied: false, vehicle: null },
-      { id: 'EV-L1-01',  floor: 1, type: 'MOBIL_LISTRIK', occupied: false, vehicle: null },
-      { id: 'MBL-L2-01', floor: 2, type: 'MOBIL', occupied: false, vehicle: null },
-      { id: 'MBL-L2-02', floor: 2, type: 'MOBIL', occupied: false, vehicle: null },
-      { id: 'EV-L2-01',  floor: 2, type: 'MOBIL_LISTRIK', occupied: false, vehicle: null }
-    ];
+    // 45 SLOTS DEFINITION (BLUEPRINT REAL)
+    const slots = [];
 
+    // 1. Baris A: 9 Motor Slots
+    for (let i = 1; i <= 9; i++) {
+      slots.push({
+        id: `MTR-A${String(i).padStart(2, '0')}`,
+        row: 'A',
+        type: 'MOTOR',
+        occupied: false,
+        vehicle: null
+      });
+    }
+
+    // 2. Baris B: 11 Car Slots (B01-B04, B06-B12, B05 is Staircase)
+    for (let i = 1; i <= 12; i++) {
+      if (i === 5) continue;
+      slots.push({
+        id: `MBL-B${String(i).padStart(2, '0')}`,
+        row: 'B',
+        type: 'MOBIL',
+        occupied: false,
+        vehicle: null
+      });
+    }
+
+    // 3. Baris C: 11 Car Slots (C01-C04, C06-C12, C05 is Staircase)
+    for (let i = 1; i <= 12; i++) {
+      if (i === 5) continue;
+      slots.push({
+        id: `MBL-C${String(i).padStart(2, '0')}`,
+        row: 'C',
+        type: 'MOBIL',
+        occupied: false,
+        vehicle: null
+      });
+    }
+
+    // 4. Baris D: 12 Car Slots + 2 EV Fast Charger Slots
+    for (let i = 1; i <= 12; i++) {
+      slots.push({
+        id: `MBL-D${String(i).padStart(2, '0')}`,
+        row: 'D',
+        type: 'MOBIL',
+        occupied: false,
+        vehicle: null
+      });
+    }
+    slots.push({ id: 'EV-D13', row: 'D', type: 'MOBIL_LISTRIK', occupied: false, vehicle: null });
+    slots.push({ id: 'EV-D14', row: 'D', type: 'MOBIL_LISTRIK', occupied: false, vehicle: null });
+
+    // Initial Active Transactions
     let transactions = [
       {
         ticket: 'TKT-0001',
+        vehicle: { plate: 'B 6789 PBO', type: 'MOTOR', model: 'Honda Vario' },
+        slotId: 'MTR-A02',
+        inHour: 9,
+        outHour: null,
+        paid: false,
+        total: 0,
+        method: '-'
+      },
+      {
+        ticket: 'TKT-0002',
         vehicle: { plate: 'B 1234 ABC', type: 'MOBIL', model: 'Toyota Avanza' },
-        slotId: 'MBL-L1-01',
+        slotId: 'MBL-B02',
         inHour: 8,
+        outHour: null,
+        paid: false,
+        total: 0,
+        method: '-'
+      },
+      {
+        ticket: 'TKT-0003',
+        vehicle: { plate: 'L 9988 XYZ', type: 'MOBIL', model: 'Honda HR-V' },
+        slotId: 'MBL-C08',
+        inHour: 10,
+        outHour: null,
+        paid: false,
+        total: 0,
+        method: '-'
+      },
+      {
+        ticket: 'TKT-0004',
+        vehicle: { plate: 'B 1010 EV', type: 'MOBIL_LISTRIK', model: 'Hyundai Ioniq' },
+        slotId: 'EV-D13',
+        inHour: 9,
         outHour: null,
         paid: false,
         total: 0,
@@ -827,112 +1082,170 @@
       }
     ];
 
-    let selectedSlotId = 'MBL-L1-01';
+    // Mark initial occupied slots
+    transactions.forEach(t => {
+      const s = slots.find(item => item.id === t.slotId);
+      if (s) {
+        s.occupied = true;
+        s.vehicle = t.vehicle;
+      }
+    });
+
+    let selectedSlotId = 'MBL-B02';
     let totalRevenue = 0;
-    let ticketCounter = 2;
-    let currentFloorFilter = 'ALL';
+    let ticketCounter = 5;
 
     function formatRupiah(num) {
       return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
     }
 
-    function renderSlots() {
-      const grid = document.getElementById('slotsGrid');
-      grid.innerHTML = '';
-
-      const filtered = slots.filter(s => currentFloorFilter === 'ALL' || s.floor === parseInt(currentFloorFilter));
-
-      filtered.forEach(s => {
-        const card = document.createElement('div');
-        const isEV = s.type === 'MOBIL_LISTRIK';
-        const isSelected = (selectedSlotId === s.id);
-
-        card.className = `slot-item ${s.occupied ? 'occupied' : 'available'} ${isEV ? 'ev-charging' : ''} ${isSelected ? 'selected' : ''}`;
-
-        card.innerHTML = `
-          <div class="slot-header">
-            <span class="slot-id">${s.id}</span>
-            <span class="slot-type-badge">${isEV ? '⚡ EV' : s.type} • LT.${s.floor}</span>
-          </div>
-          <div class="slot-body">
-            ${s.occupied ? `
-              <div class="slot-plate">${s.vehicle.plate}</div>
-              <div class="slot-model">${s.vehicle.model}</div>
-            ` : `
-              <div class="slot-status-text">TERSEDIA</div>
-              <div style="font-size: 10px; color: var(--text-muted);">${isEV ? '⚡ EV Charger Ready' : 'Siap Parkir'}</div>
-            `}
-          </div>
-        `;
-
-        // KLIK PADA MOBIL / SLOT LANGSUNG
-        card.onclick = () => onSlotCardClicked(s);
-
-        grid.appendChild(card);
+    function renderBlueprint() {
+      // 1. Render Row A (Motor)
+      const rowAEl = document.getElementById('rowASlots');
+      rowAEl.innerHTML = '';
+      slots.filter(s => s.row === 'A').forEach(s => {
+        rowAEl.appendChild(createBayElement(s, '🛵'));
       });
+
+      // 2. Render Row B (Mobil + Tangga + Pilar)
+      const rowBEl = document.getElementById('rowBSlots');
+      rowBEl.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        if (i === 5) {
+          rowBEl.appendChild(createStairElement());
+          continue;
+        }
+        const s = slots.find(item => item.id === `MBL-B${String(i).padStart(2, '0')}`);
+        if (s) rowBEl.appendChild(createBayElement(s, '🚗'));
+        if (i === 2 || i === 4 || i === 6 || i === 8 || i === 10) {
+          rowBEl.appendChild(createPillarElement());
+        }
+      }
+
+      // 3. Render Row C (Mobil + Tangga + Pilar)
+      const rowCEl = document.getElementById('rowCSlots');
+      rowCEl.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        if (i === 5) {
+          rowCEl.appendChild(createStairElement());
+          continue;
+        }
+        const s = slots.find(item => item.id === `MBL-C${String(i).padStart(2, '0')}`);
+        if (s) rowCEl.appendChild(createBayElement(s, '🚗'));
+        if (i === 2 || i === 4 || i === 6 || i === 8 || i === 10) {
+          rowCEl.appendChild(createPillarElement());
+        }
+      }
+
+      // 4. Render Row D (Mobil + EV + Pilar)
+      const rowDEl = document.getElementById('rowDSlots');
+      rowDEl.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        const s = slots.find(item => item.id === `MBL-D${String(i).padStart(2, '0')}`);
+        if (s) rowDEl.appendChild(createBayElement(s, '🚗'));
+        if (i === 2 || i === 4 || i === 6 || i === 8 || i === 10 || i === 12) {
+          rowDEl.appendChild(createPillarElement());
+        }
+      }
+      const ev1 = slots.find(item => item.id === 'EV-D13');
+      const ev2 = slots.find(item => item.id === 'EV-D14');
+      if (ev1) rowDEl.appendChild(createBayElement(ev1, '⚡'));
+      if (ev2) rowDEl.appendChild(createBayElement(ev2, '⚡'));
 
       updateStats();
       populateCheckoutSelect();
+      renderTransactions();
     }
 
-    function onSlotCardClicked(slot) {
+    function createBayElement(slot, icon) {
+      const bay = document.createElement('div');
+      const isEV = slot.type === 'MOBIL_LISTRIK';
+      const isMotor = slot.type === 'MOTOR';
+      const isSelected = (selectedSlotId === slot.id);
+
+      bay.className = `parking-bay ${slot.occupied ? 'occupied' : ''} ${isEV ? 'ev-slot' : ''} ${isMotor ? 'motor-slot' : ''} ${isSelected ? 'selected' : ''}`;
+      
+      const shortId = slot.id.substring(slot.id.indexOf('-') + 1);
+
+      bay.innerHTML = `
+        <div class="bay-header">
+          <span class="bay-id">${shortId}</span>
+          <span class="bay-icon">${icon}</span>
+        </div>
+        <div class="bay-body">
+          ${slot.occupied ? `
+            <div class="bay-plate">${slot.vehicle.plate}</div>
+            <div class="bay-model">${slot.vehicle.model}</div>
+          ` : `
+            <div class="bay-status-free">${isEV ? '⚡EV' : 'FREE'}</div>
+            <div class="bay-subtext">Siap</div>
+          `}
+        </div>
+      `;
+
+      // KLIK LANGSUNG PADA MOBIL / SLOT
+      bay.onclick = () => onSlotBayClicked(slot);
+
+      return bay;
+    }
+
+    function createPillarElement() {
+      const p = document.createElement('div');
+      p.className = 'pillar-column';
+      p.title = 'Tiang Pilar Beton Struktural';
+      return p;
+    }
+
+    function createStairElement() {
+      const s = document.createElement('div');
+      s.className = 'stair-core';
+      s.innerHTML = `<b>TANGGA<br/>& LIFT</b><span style="font-size:7px; color:#64748b;">Darurat</span>`;
+      return s;
+    }
+
+    function onSlotBayClicked(slot) {
       selectedSlotId = slot.id;
 
       if (slot.occupied) {
-        // Beralih ke tab check-out dan pilih tiket mobil ini
-        switchActionTab('checkout');
         const matchingTx = transactions.find(t => !t.paid && t.slotId === slot.id);
-
         if (matchingTx) {
           document.getElementById('outTiketSelect').value = matchingTx.ticket;
-          document.getElementById('checkoutBanner').innerHTML = `✔ Kendaraan <b>${slot.vehicle.plate}</b> (${slot.vehicle.model}) di slot <b>${slot.id}</b> terpilih! Klik bayar untuk check-out.`;
+          
+          // Set sensible exit hour
+          const inHour = matchingTx.inHour;
+          let currentExit = parseInt(document.getElementById('outJam').value);
+          if (currentExit <= inHour) {
+            document.getElementById('outJam').value = Math.min(23, inHour + 3);
+          }
+
+          document.getElementById('checkoutNotice').innerHTML = `
+            ✔ <b>Terpilih: ${slot.vehicle.plate}</b> (${slot.vehicle.model}) di slot <b>${slot.id}</b>.<br/>
+            <span style="color: var(--accent-green); font-size:10px;">Siap Check-Out! Klik tombol hijau di bawah untuk proses bayar.</span>
+          `;
           previewBilling();
         }
       } else {
-        document.getElementById('checkoutBanner').innerHTML = `💡 Slot <b>${slot.id}</b> (Lantai ${slot.floor}) sedang kosong. Pilih kendaraan terparkir warna merah untuk check-out.`;
+        document.getElementById('checkoutNotice').innerHTML = `
+          💡 Slot <b>${slot.id}</b> (${slot.type}) sedang kosong. Klik mobil merah di denah untuk langsung check-out.
+        `;
+        document.getElementById('billingPreview').innerText = 'Pilih kendaraan terisi';
       }
 
-      renderSlots();
+      renderBlueprint();
     }
 
-    function updateStats() {
-      const total = slots.length;
-      const occupied = slots.filter(s => s.occupied).length;
-      const available = total - occupied;
-
-      document.getElementById('statTotal').innerText = total;
-      document.getElementById('statAvailable').innerText = available;
-      document.getElementById('statOccupied').innerText = occupied;
-      document.getElementById('statRevenue').innerText = formatRupiah(totalRevenue);
-    }
-
-    function switchFloor(floor) {
-      currentFloorFilter = floor;
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
-      renderSlots();
-    }
-
-    function switchActionTab(tab) {
-      document.getElementById('tabBtnCheckin').classList.toggle('active', tab === 'checkin');
-      document.getElementById('tabBtnCheckout').classList.toggle('active', tab === 'checkout');
-      document.getElementById('checkinTab').style.display = tab === 'checkin' ? 'block' : 'none';
-      document.getElementById('checkoutTab').style.display = tab === 'checkout' ? 'block' : 'none';
-      if (tab === 'checkout') previewBilling();
-    }
-
-    function triggerBarrierGate(open, text = 'PORTAL TERBUKA') {
-      const arm = document.getElementById('barrierArm');
-      const badge = document.getElementById('gateBadge');
-      if (open) {
-        arm.classList.add('open');
-        badge.classList.add('open');
-        badge.innerText = text;
-        setTimeout(() => {
-          arm.classList.remove('open');
-          badge.classList.remove('open');
-          badge.innerText = 'PORTAL TERTUTUP';
-        }, 3200);
+    function onCheckInTypeChanged() {
+      const type = document.getElementById('inTipe').value;
+      const hint = document.getElementById('inAlokasiHint');
+      if (type === 'MOTOR') {
+        hint.innerHTML = '🛵 Dialokasikan ke Baris A (Zona Khusus Motor - Tarif Rp 2.000)';
+        hint.style.color = 'var(--accent-teal)';
+      } else if (type === 'MOBIL_LISTRIK') {
+        hint.innerHTML = '⚡ Prioritas ke Slot EV-D13 / EV-D14 (Diskon Hijau 20%)';
+        hint.style.color = 'var(--accent-purple)';
+      } else {
+        hint.innerHTML = '🚗 Dialokasikan ke Zona Mobil (Baris B, C, atau D - Tarif Rp 5.000)';
+        hint.style.color = 'var(--accent-blue)';
       }
     }
 
@@ -942,28 +1255,25 @@
       const model = document.getElementById('inMerk').value.trim();
       const inHour = parseInt(document.getElementById('inJam').value);
 
-      if (!plate || isNaN(inHour)) {
-        alert('Harap isi plat nomor dan jam masuk yang valid!');
+      if (!plate || !model || isNaN(inHour)) {
+        alert('Harap lengkapi nomor plat, merk, dan jam masuk yang valid!');
         return;
       }
 
+      // Automated Slot Allocation based on Type
       let candidate = null;
-      for (const s of slots) {
-        if (!s.occupied) {
-          if (type === 'MOTOR' && s.type === 'MOTOR') {
-            if (!candidate || s.floor < candidate.floor) candidate = s;
-          } else if (type === 'MOBIL_LISTRIK') {
-            if (s.type === 'MOBIL_LISTRIK' || s.type === 'MOBIL') {
-              if (!candidate || s.floor < candidate.floor) candidate = s;
-            }
-          } else if (type === 'MOBIL' && s.type === 'MOBIL') {
-            if (!candidate || s.floor < candidate.floor) candidate = s;
-          }
-        }
+      if (type === 'MOBIL_LISTRIK') {
+        // Coba cari slot EV charger dulu
+        candidate = slots.find(s => !s.occupied && s.type === 'MOBIL_LISTRIK');
+        if (!candidate) candidate = slots.find(s => !s.occupied && s.type === 'MOBIL');
+      } else if (type === 'MOTOR') {
+        candidate = slots.find(s => !s.occupied && s.type === 'MOTOR');
+      } else {
+        candidate = slots.find(s => !s.occupied && s.type === 'MOBIL');
       }
 
       if (!candidate) {
-        alert('Maaf, kapasitas parkir untuk tipe ' + type + ' sudah PENUH!');
+        alert(`Maaf, kapasitas parkir untuk tipe ${type} sudah PENUH!`);
         return;
       }
 
@@ -984,8 +1294,9 @@
       });
 
       triggerBarrierGate(true, 'GATE MASUK DIBUKA');
-      renderSlots();
-      renderTransactions();
+      renderBlueprint();
+      onSlotBayClicked(candidate);
+      alert(`Check-In Sukses!\nKendaraan: ${plate}\nTiket: ${ticketNo}\nAlokasi: Slot ${candidate.id}`);
     }
 
     function populateCheckoutSelect() {
@@ -1016,8 +1327,8 @@
       const t = transactions.find(item => item.ticket === ticketId);
       if (t) {
         selectedSlotId = t.slotId;
-        document.getElementById('checkoutBanner').innerHTML = `✔ Kendaraan <b>${t.vehicle.plate}</b> di slot <b>${t.slotId}</b> terpilih!`;
-        renderSlots();
+        document.getElementById('checkoutNotice').innerHTML = `✔ Kendaraan <b>${t.vehicle.plate}</b> di slot <b>${t.slotId}</b> terpilih!`;
+        renderBlueprint();
       }
       previewBilling();
     }
@@ -1029,46 +1340,55 @@
 
       if (!ticket) {
         document.getElementById('billingPreview').innerText = 'Pilih kendaraan terisi';
-        document.getElementById('evDiscountNotice').innerText = '';
         return;
       }
 
       let dur = outHour >= ticket.inHour ? (outHour - ticket.inHour) : (24 - ticket.inHour + outHour);
       dur = Math.max(1, dur);
 
-      let rate1 = ticket.vehicle.type === 'MOTOR' ? 2000 : 5000;
-      let rateNext = ticket.vehicle.type === 'MOTOR' ? 1000 : 3000;
+      const isMotor = ticket.vehicle.type === 'MOTOR';
+      const isEV = ticket.vehicle.type === 'MOBIL_LISTRIK';
+
+      // Tarif Berbeda: Motor vs Mobil
+      const rate1 = isMotor ? 2000 : 5000;
+      const rateNext = isMotor ? 1000 : 3000;
 
       let subtotal = rate1 + (dur > 1 ? (dur - 1) * rateNext : 0);
-      let isEV = ticket.vehicle.type === 'MOBIL_LISTRIK';
       if (isEV) {
-        subtotal = subtotal * 0.8;
+        subtotal = subtotal * 0.8; // Diskon EV 20%
       }
 
-      document.getElementById('billingPreview').innerText = `${formatRupiah(subtotal)} (${dur} Jam)`;
-      document.getElementById('evDiscountNotice').innerText = isEV ? '✨ Diskon Insentif Hijau 20% Diterapkan' : '';
+      document.getElementById('billingPreview').innerText = `${formatRupiah(subtotal)} (${dur} Jam)${isEV ? ' [Diskon EV 20%]' : (isMotor ? ' [Tarif Motor]' : '')}`;
+      document.getElementById('outUang').value = subtotal;
     }
 
     function handleCheckOut() {
       const ticketId = document.getElementById('outTiketSelect').value;
       const outHour = parseInt(document.getElementById('outJam').value);
       const method = document.getElementById('outMetode').value;
-      const ticket = transactions.find(t => t.ticket === ticketId);
+      const uangBayar = parseFloat(document.getElementById('outUang').value);
+      const ticket = transactions.find(t => t.ticket === ticketId && !t.paid);
 
       if (!ticket) {
-        alert('Pilih tiket yang valid untuk check-out!');
+        alert('Silakan pilih salah satu mobil yang sedang terparkir di denah!');
         return;
       }
 
       let dur = outHour >= ticket.inHour ? (outHour - ticket.inHour) : (24 - ticket.inHour + outHour);
       dur = Math.max(1, dur);
 
-      let rate1 = ticket.vehicle.type === 'MOTOR' ? 2000 : 5000;
-      let rateNext = ticket.vehicle.type === 'MOTOR' ? 1000 : 3000;
+      const isMotor = ticket.vehicle.type === 'MOTOR';
+      const rate1 = isMotor ? 2000 : 5000;
+      const rateNext = isMotor ? 1000 : 3000;
       let subtotal = rate1 + (dur > 1 ? (dur - 1) * rateNext : 0);
 
       if (ticket.vehicle.type === 'MOBIL_LISTRIK') {
         subtotal = subtotal * 0.8;
+      }
+
+      if (uangBayar < subtotal) {
+        alert(`Uang bayar tidak mencukupi! Tagihan: ${formatRupiah(subtotal)}, Uang: ${formatRupiah(uangBayar)}`);
+        return;
       }
 
       ticket.paid = true;
@@ -1084,55 +1404,92 @@
       }
 
       selectedSlotId = null;
-      document.getElementById('checkoutBanner').innerHTML = `✔ Check-out sukses! Slot <b>${ticket.slotId}</b> telah kosong kembali.`;
+      document.getElementById('checkoutNotice').innerHTML = `✔ Check-out sukses! Slot <b>${ticket.slotId}</b> telah kosong kembali.`;
 
       triggerBarrierGate(true, 'GATE KELUAR DIBUKA');
-      renderSlots();
-      renderTransactions();
+      renderBlueprint();
+
+      // Show Receipt Modal
       showReceipt(ticket);
     }
 
-    function renderTransactions() {
-      const tbody = document.getElementById('txTableBody');
-      tbody.innerHTML = '';
+    function showReceipt(t) {
+      document.getElementById('rcTiket').innerText = t.ticket;
+      document.getElementById('rcPlat').innerText = t.vehicle.plate + ' (' + t.vehicle.model + ')';
+      document.getElementById('rcTipe').innerText = t.vehicle.type;
+      document.getElementById('rcSlot').innerText = t.slotId;
+      document.getElementById('rcJam').innerText = `${t.inHour}:00 - ${t.outHour}:00`;
+      document.getElementById('rcMetode').innerText = t.method;
+      document.getElementById('rcTotal').innerText = formatRupiah(t.total);
+      document.getElementById('receiptModal').classList.add('show');
+    }
 
-      transactions.slice(0, 10).forEach(t => {
+    function closeReceipt() {
+      document.getElementById('receiptModal').classList.remove('show');
+    }
+
+    function renderTransactions() {
+      const tbody = document.getElementById('logTableBody');
+      tbody.innerHTML = '';
+      transactions.forEach(t => {
         const tr = document.createElement('tr');
-        const jamKet = t.outHour ? `${t.inHour}:00 - ${t.outHour}:00` : `${t.inHour}:00 - ...`;
+        const jam = t.paid ? `${t.inHour}:00-${t.outHour}:00` : `${t.inHour}:00-...`;
+        const statusBadge = t.paid ? `<span class="badge-paid">LUNAS (${t.method})</span>` : `<span class="badge-parking">PARKIR</span>`;
+        const fee = t.paid ? formatRupiah(t.total) : '-';
+
         tr.innerHTML = `
-          <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--accent-blue);">${t.ticket}</td>
-          <td><b>${t.vehicle.plate}</b></td>
-          <td><span style="font-size: 10px; color: var(--text-muted);">${t.vehicle.type}</span></td>
-          <td><strong style="color: var(--text-dark);">${t.slotId}</strong></td>
-          <td>${jamKet}</td>
-          <td><span class="badge-pill ${t.paid ? 'badge-paid' : 'badge-active'}">${t.paid ? 'LUNAS' : 'PARKIR'}</span></td>
+          <td><strong>${t.ticket}</strong></td>
+          <td>${t.vehicle.plate}</td>
+          <td>${t.vehicle.type}</td>
+          <td>${t.slotId}</td>
+          <td>${jam}</td>
+          <td>${statusBadge}</td>
+          <td>${fee}</td>
         `;
+
         tr.onclick = () => {
           if (!t.paid) {
-            onSlotCardClicked(slots.find(s => s.id === t.slotId));
+            selectedSlotId = t.slotId;
+            document.getElementById('outTiketSelect').value = t.ticket;
+            onSlotBayClicked(slots.find(s => s.id === t.slotId));
           }
         };
+
         tbody.appendChild(tr);
       });
     }
 
-    function showReceipt(t) {
-      document.getElementById('rTiket').innerText = t.ticket;
-      document.getElementById('rPlat').innerText = `${t.vehicle.plate} (${t.vehicle.model})`;
-      document.getElementById('rSlot').innerText = t.slotId;
-      document.getElementById('rWaktu').innerText = `${t.inHour}:00 - ${t.outHour}:00`;
-      document.getElementById('rMetode').innerText = t.method;
-      document.getElementById('rTotal').innerText = formatRupiah(t.total);
-      document.getElementById('receiptModal').classList.add('show');
+    function updateStats() {
+      const total = slots.length;
+      const occupied = slots.filter(s => s.occupied).length;
+      const available = total - occupied;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statAvailable').innerText = available;
+      document.getElementById('statOccupied').innerText = occupied;
+      document.getElementById('statRevenue').innerText = formatRupiah(totalRevenue);
     }
 
-    function closeReceiptModal() {
-      document.getElementById('receiptModal').classList.remove('show');
+    function triggerBarrierGate(open, text = 'PORTAL TERBUKA') {
+      const arm = document.getElementById('barrierArm');
+      const badge = document.getElementById('gateBadge');
+      if (open) {
+        arm.classList.add('open');
+        badge.classList.add('open');
+        badge.innerText = text;
+        setTimeout(() => {
+          arm.classList.remove('open');
+          badge.classList.remove('open');
+          badge.innerText = 'PORTAL TERTUTUP';
+        }, 3200);
+      }
     }
 
-    // Init run
-    renderSlots();
-    renderTransactions();
+    // Initialize
+    window.onload = () => {
+      renderBlueprint();
+      onCheckInTypeChanged();
+    };
   </script>
 </body>
 </html>
