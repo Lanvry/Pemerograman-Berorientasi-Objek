@@ -1,1281 +1,1332 @@
+import model.AIVisionService;
+import model.AIVisionService.DetectionResult;
 import model.GedungParkir;
 import model.KarcisParkir;
 import model.Kendaraan;
+import model.LiveCameraStreamer;
 import model.SlotParkir;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.text.NumberFormat;
 import java.util.Locale;
 
-/**
- * SmartParkir Command Center - Desktop Control UI.
- * Refactored strictly adhering to Antislop UI guidelines:
- * - Clean, purposeful palette (Slate & Crisp Light)
- * - Zero decorative emojis
- * - Zero endless pulsing loops
- * - Dynamic tabbed operations (Check-Out / Check-In) so the log table is never cut off
- * - Proportional blueprint bays that fit without horizontal scrollbars
- * - Fully visible license plates (two-line stacking for zero truncation)
- */
 public class AdminGUI extends JFrame {
 
-    // Palet Warna Profesional & Terstruktur (Antislop Palette)
-    private static final Color BG_PAGE = new Color(248, 250, 252);        // #f8fafc
-    private static final Color CARD_BG = new Color(255, 255, 255);         // #ffffff
-    private static final Color BORDER_SUBTLE = new Color(226, 232, 240);    // #e2e8f0
-    private static final Color BORDER_ACTIVE = new Color(37, 99, 235);     // #2563eb
-    private static final Color TEXT_PRIMARY = new Color(15, 23, 42);       // #0f172a
-    private static final Color TEXT_SECONDARY = new Color(51, 65, 85);     // #334155
-    private static final Color TEXT_MUTED = new Color(100, 116, 139);      // #64748b
-
-    // Brand & Status Colors
-    private static final Color BRAND_BLUE = new Color(37, 99, 235);        // #2563eb
-    private static final Color BRAND_BLUE_HOVER = new Color(29, 78, 216);  // #1d4ed8
-    private static final Color STATUS_SUCCESS = new Color(5, 150, 105);    // #059669
-    private static final Color STATUS_DANGER = new Color(220, 38, 38);     // #dc2626
-    private static final Color STATUS_PURPLE = new Color(124, 58, 237);    // #7c3aed
-    private static final Color STATUS_TEAL = new Color(13, 148, 136);      // #0d9488
-
-    // Soft Surface States (High Contrast)
-    private static final Color SURFACE_SUCCESS = new Color(240, 253, 244);
-    private static final Color SURFACE_DANGER = new Color(254, 242, 242);
-    private static final Color SURFACE_PURPLE = new Color(245, 243, 255);
-    private static final Color SURFACE_TEAL = new Color(240, 253, 250);
-    private static final Color AISLE_BG = new Color(241, 245, 249);
-    private static final Color PILLAR_COLOR = new Color(71, 85, 105);
+    // Palet Warna: Dark Slate / Charcoal Modern (Elegan, tidak menyilaukan mata)
+    private static final Color BG        = new Color(15, 23, 42);      // #0f172a Deep Background
+    private static final Color CARD_BG   = new Color(30, 41, 59);      // #1e293b Slate Card
+    private static final Color FIELD_BG  = new Color(15, 23, 42);      // #0f172a Inner / Input BG
+    private static final Color BORDER    = new Color(51, 65, 85);      // #334155 Slate Border
+    private static final Color BLUE      = new Color(59, 130, 246);    // #3b82f6 Accent Blue
+    private static final Color BLUE_LT   = new Color(30, 58, 95);      // #1e3a5f Dark Blue Container
+    private static final Color GREEN     = new Color(34, 197, 94);     // #22c55e Emerald
+    private static final Color GREEN_LT  = new Color(16, 44, 33);      // Dark Emerald Surface
+    private static final Color RED       = new Color(239, 68, 68);     // #ef4444 Red
+    private static final Color RED_LT    = new Color(60, 20, 24);      // Dark Red Surface
+    private static final Color PURPLE    = new Color(168, 85, 247);    // #a855f7 Purple
+    private static final Color PURPLE_LT = new Color(48, 28, 70);      // Dark Purple Surface
+    private static final Color TEAL      = new Color(20, 184, 166);    // #14b8a6 Teal
+    private static final Color TEAL_LT   = new Color(17, 47, 45);      // Dark Teal Surface
+    private static final Color AMBER     = new Color(245, 158, 11);    // #f59e0b Amber
+    private static final Color T1        = new Color(241, 245, 249);   // #f1f5f9 Crisp Primary Text
+    private static final Color T2        = new Color(148, 163, 184);   // #94a3b8 Secondary Slate
+    private static final Color T3        = new Color(100, 116, 139);   // #64748b Muted Slate
+    private static final Color AISLE     = new Color(20, 29, 44);      // Maneuver Lane
+    private static final Color PILLAR    = new Color(71, 85, 105);     // Column/Pillar
+    private static final Color WHITE     = Color.WHITE;
 
     private GedungParkir gedung;
-    private NumberFormat rupiahFormat;
+    private NumberFormat rupiah;
+    private SlotParkir selectedSlot;
+    private KarcisParkir selectedTiket;
 
-    // State Interaksi
-    private SlotParkir selectedSlot = null;
-    private KarcisParkir selectedTiket = null;
-
-    // Komponen Blueprint & Header
     private JPanel blueprintContainer;
-    private JLabel lblTotalSlot, lblTersedia, lblTerisi, lblPendapatan;
-    private DefaultTableModel logTableModel;
-    private JTable logTable;
+    private JLabel lblTersedia, lblTerisi, lblPendapatan;
+    private DefaultTableModel logModel;
 
-    // Tabbed Operations
-    private JTabbedPane actionTabbedPane;
+    private JTextField txtTiket, txtJamKeluar, txtUangBayar;
+    private JComboBox<String> cbMetode;
+    private JLabel lblInfoKendaraan, lblTagihan, lblNotice;
 
-    // Form Check-Out
-    private JTextField txtCariTiket, txtJamKeluar, txtUangBayar;
-    private JComboBox<String> cbMetodeBayar;
-    private JLabel lblCheckoutNotice;
-    private JLabel lblBillingPreview;
-    private JLabel lblDetailPlate, lblDetailSlot, lblDetailInTime;
-
-    // Form Check-In
     private JTextField txtPlat, txtMerk, txtJamMasuk;
-    private JComboBox<String> cbTipeKendaraan;
-    private JLabel lblAlokasiInfo;
+    private JComboBox<String> cbTipe;
+    private JLabel lblAlokasiHint;
 
-    // Barrier Gate Animation State (Triggered ONLY on real action)
-    private float gateAngle = 0.0f;
-    private float targetGateAngle = 0.0f;
-    private String gateStatusText = "PORTAL TERTUTUP";
-    private Color gateStatusColor = STATUS_DANGER;
-    private Timer gateAnimationTimer;
+    private JTabbedPane tabs;
+
+    private float gateAngle = 0f, targetGate = 0f;
+    private String gateLabel = "TERTUTUP";
+    private Color gateColor  = RED;
+    private Timer gateTimer;
+
+    // AI Camera state
+    private String savedEndpoint = "http://localhost:11434/api/chat";
+    private String savedApiKey   = "";
+    private String savedModel    = "llama3.2-vision";
 
     public AdminGUI() {
-        super("SmartParkir Command Center - Grand PENS Plaza");
-        this.rupiahFormat = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        super("SmartParkir — Admin Dashboard & AI Vision Gerbang");
+        rupiah = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        
+        // Load AI Credentials from ai_config.properties
+        java.util.Properties aiProps = AIVisionService.loadConfig();
+        savedEndpoint = aiProps.getProperty("ai.endpoint", "http://localhost:11434/api/chat");
+        savedApiKey   = aiProps.getProperty("ai.api_key", "");
+        savedModel    = aiProps.getProperty("ai.model", "llama3.2-vision");
 
         initData();
-        initUI();
-
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1400, 860);
-        setMinimumSize(new Dimension(1220, 780));
+        buildUI();
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(1380, 840);
+        setMinimumSize(new Dimension(1200, 700));
         setLocationRelativeTo(null);
     }
 
     private void initData() {
-        gedung = new GedungParkir(
-                "Mall Grand PENS Plaza",
-                5000.0, 3000.0, // Mobil: Rp 5.000 jam ke-1, Rp 3.000 jam berikutnya
-                2000.0, 1000.0  // Motor: Rp 2.000 jam ke-1, Rp 1.000 jam berikutnya
-        );
+        gedung = new GedungParkir("Grand PENS Plaza", 5000, 3000, 2000, 1000);
 
-        // Baris A: 9 Slot MOTOR
-        for (int i = 1; i <= 9; i++) {
-            gedung.tambahSlot(new SlotParkir(String.format("MTR-A%02d", i), 1, "MOTOR"));
-        }
-
-        // Baris B: 11 Slot MOBIL (B05 adalah Core Tangga)
+        for (int i = 1; i <= 9; i++)
+            gedung.tambahSlot(new SlotParkir(String.format("A%02d", i), 1, "MOTOR"));
         for (int i = 1; i <= 12; i++) {
             if (i == 5) continue;
-            gedung.tambahSlot(new SlotParkir(String.format("MBL-B%02d", i), 1, "MOBIL"));
+            gedung.tambahSlot(new SlotParkir(String.format("B%02d", i), 1, "MOBIL"));
         }
-
-        // Baris C: 11 Slot MOBIL (C05 adalah Core Tangga)
         for (int i = 1; i <= 12; i++) {
             if (i == 5) continue;
-            gedung.tambahSlot(new SlotParkir(String.format("MBL-C%02d", i), 1, "MOBIL"));
+            gedung.tambahSlot(new SlotParkir(String.format("C%02d", i), 1, "MOBIL"));
         }
+        for (int i = 1; i <= 12; i++)
+            gedung.tambahSlot(new SlotParkir(String.format("D%02d", i), 1, "MOBIL"));
+        gedung.tambahSlot(new SlotParkir("EV1", 1, "MOBIL_LISTRIK"));
+        gedung.tambahSlot(new SlotParkir("EV2", 1, "MOBIL_LISTRIK"));
 
-        // Baris D: 12 Slot MOBIL + 2 Slot EV Charger
-        for (int i = 1; i <= 12; i++) {
-            gedung.tambahSlot(new SlotParkir(String.format("MBL-D%02d", i), 1, "MOBIL"));
-        }
-        gedung.tambahSlot(new SlotParkir("EV-D13", 1, "MOBIL_LISTRIK"));
-        gedung.tambahSlot(new SlotParkir("EV-D14", 1, "MOBIL_LISTRIK"));
+        gedung.prosesMasuk(new Kendaraan("B 6789 MTR", "MOTOR",        "Honda Vario"), 9);
+        KarcisParkir t2 = gedung.prosesMasuk(new Kendaraan("B 1234 ABC", "MOBIL",  "Toyota Avanza"), 8);
+        gedung.prosesMasuk(new Kendaraan("L 9988 XYZ", "MOBIL",        "Honda HR-V"), 10);
+        gedung.prosesMasuk(new Kendaraan("B 1010 EV",  "MOBIL_LISTRIK","Ioniq 5"), 9);
 
-        // Data awal yang realistis
-        Kendaraan k1 = new Kendaraan("B 6789 PBO", "MOTOR", "Honda Vario 160");
-        gedung.prosesMasuk(k1, 9);
-
-        Kendaraan k2 = new Kendaraan("B 1234 ABC", "MOBIL", "Toyota Avanza");
-        KarcisParkir t2 = gedung.prosesMasuk(k2, 8);
-
-        Kendaraan k3 = new Kendaraan("L 9988 XYZ", "MOBIL", "Honda HR-V");
-        gedung.prosesMasuk(k3, 10);
-
-        Kendaraan k4 = new Kendaraan("B 1010 EV", "MOBIL_LISTRIK", "Hyundai Ioniq 5");
-        gedung.prosesMasuk(k4, 9);
-
-        if (t2 != null) {
-            this.selectedSlot = t2.getSlot();
-            this.selectedTiket = t2;
-        }
+        if (t2 != null) { selectedSlot = t2.getSlot(); selectedTiket = t2; }
     }
 
-    private void initUI() {
-        getContentPane().setBackground(BG_PAGE);
-        setLayout(new BorderLayout(0, 0));
+    private void buildUI() {
+        getContentPane().setBackground(BG);
+        setLayout(new BorderLayout());
+        add(buildHeader(), BorderLayout.NORTH);
 
-        // 1. Header Navbar
-        add(createNavbarHeader(), BorderLayout.NORTH);
+        JPanel body = new JPanel(new BorderLayout(12, 0));
+        body.setBackground(BG);
+        body.setBorder(new EmptyBorder(12, 14, 14, 14));
+        body.add(buildBlueprint(), BorderLayout.CENTER);
+        body.add(buildSidebar(),   BorderLayout.EAST);
+        add(body, BorderLayout.CENTER);
 
-        // 2. Main Content (Left: Blueprint, Right: Control Panel)
-        JPanel contentGrid = new JPanel(new BorderLayout(14, 0));
-        contentGrid.setBackground(BG_PAGE);
-        contentGrid.setBorder(new EmptyBorder(12, 16, 14, 16));
-
-        contentGrid.add(createBlueprintPanel(), BorderLayout.CENTER);
-        contentGrid.add(createOperationPanel(), BorderLayout.EAST);
-
-        add(contentGrid, BorderLayout.CENTER);
-
-        // Sinkronisasi data
-        updateStats();
-        updateLogTable();
-        updateCheckoutPreview();
+        syncAll();
     }
 
-    private JPanel createNavbarHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(CARD_BG);
-        header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE),
-                new EmptyBorder(10, 20, 10, 20)
-        ));
+    private JPanel buildHeader() {
+        JPanel h = new JPanel(new BorderLayout());
+        h.setBackground(CARD_BG);
+        h.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
+            new EmptyBorder(10, 18, 10, 18)));
 
-        // Brand
-        JPanel brandBox = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        brandBox.setOpaque(false);
+        JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        brand.setOpaque(false);
 
-        JLabel brandIcon = new JLabel("P", SwingConstants.CENTER);
-        brandIcon.setOpaque(true);
-        brandIcon.setBackground(BRAND_BLUE);
-        brandIcon.setForeground(Color.WHITE);
-        brandIcon.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        brandIcon.setPreferredSize(new Dimension(34, 34));
-        brandIcon.setBorder(BorderFactory.createLineBorder(BRAND_BLUE_HOVER, 1));
+        JLabel icon = new JLabel("P", SwingConstants.CENTER);
+        icon.setOpaque(true);
+        icon.setBackground(BLUE);
+        icon.setForeground(WHITE);
+        icon.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        icon.setPreferredSize(new Dimension(32, 32));
 
-        JPanel brandText = new JPanel(new GridLayout(2, 1, 0, 1));
-        brandText.setOpaque(false);
-        JLabel title = new JLabel("SmartParkir Command Center");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        title.setForeground(TEXT_PRIMARY);
+        JLabel name = new JLabel(String.format(
+            "<html><b style='font-size:14px;color:%s;'>SmartParkir</b>"
+            + "<br/><span style='color:%s;font-size:10px;'>Grand PENS Plaza &middot; 45 Slot &middot; AI Gate</span></html>",
+            hex(T1), hex(T2)));
+        name.setForeground(T1);
+        brand.add(icon);
+        brand.add(name);
 
-        JLabel sub = new JLabel("Mall Grand PENS Plaza - Layout 45 Slot Terstruktur (Zona Motor & Mobil)");
-        sub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        sub.setForeground(TEXT_MUTED);
+        JPanel pills = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        pills.setOpaque(false);
 
-        brandText.add(title);
-        brandText.add(sub);
+        JButton btnCameraHeader = button("📷 AI Kamera Gerbang", PURPLE, WHITE);
+        btnCameraHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        btnCameraHeader.setBorder(new EmptyBorder(6, 12, 6, 12));
+        btnCameraHeader.addActionListener(e -> openCameraScannerDialog());
+        pills.add(btnCameraHeader);
 
-        brandBox.add(brandIcon);
-        brandBox.add(brandText);
+        lblTersedia   = pill("TERSEDIA",  "-", GREEN);
+        lblTerisi     = pill("TERISI",    "-", RED);
+        lblPendapatan = pill("KAS MASUK", "-", AMBER);
+        pills.add(lblTersedia);
+        pills.add(lblTerisi);
+        pills.add(lblPendapatan);
 
-        // Summary Badges
-        JPanel stats = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        stats.setOpaque(false);
-
-        lblTotalSlot = createStatPill("TOTAL SLOT", "45", TEXT_PRIMARY);
-        lblTersedia = createStatPill("TERSEDIA", "41", STATUS_SUCCESS);
-        lblTerisi = createStatPill("TERISI", "4", STATUS_DANGER);
-        lblPendapatan = createStatPill("KAS MASUK", "Rp 0", new Color(180, 83, 9));
-
-        stats.add(lblTotalSlot);
-        stats.add(lblTersedia);
-        stats.add(lblTerisi);
-        stats.add(lblPendapatan);
-
-        header.add(brandBox, BorderLayout.WEST);
-        header.add(stats, BorderLayout.EAST);
-        return header;
+        h.add(brand, BorderLayout.WEST);
+        h.add(pills,  BorderLayout.EAST);
+        return h;
     }
 
-    private JLabel createStatPill(String label, String value, Color valColor) {
-        JLabel pill = new JLabel(String.format("<html><div style='text-align:right;'><span style='color:#64748b;font-size:8.5px;font-weight:600;'>%s</span><br/><b style='font-size:13px;color:%s;'>%s</b></div></html>",
-                label, toHex(valColor), value));
-        pill.setOpaque(true);
-        pill.setBackground(BG_PAGE);
-        pill.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(4, 10, 4, 10)
-        ));
-        return pill;
+    private JLabel pill(String label, String val, Color valColor) {
+        JLabel lbl = new JLabel(fmtPill(label, val, valColor));
+        lbl.setOpaque(true);
+        lbl.setBackground(FIELD_BG);
+        lbl.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(4, 10, 4, 10)));
+        return lbl;
     }
 
-    private JPanel createBlueprintPanel() {
-        JPanel panel = new JPanel(new BorderLayout(8, 8));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(12, 14, 10, 14)
-        ));
+    private String fmtPill(String label, String val, Color c) {
+        return String.format(
+            "<html><div style='text-align:right'>"
+            + "<span style='color:%s;font-size:9px;'>%s</span><br/>"
+            + "<b style='font-size:13px;color:%s;'>%s</b></div></html>",
+            hex(T2), label, hex(c), val);
+    }
 
-        // Panel Header
-        JPanel topHeader = new JPanel(new BorderLayout());
-        topHeader.setOpaque(false);
+    private JPanel buildBlueprint() {
+        JPanel card = new JPanel(new BorderLayout(0, 8));
+        card.setBackground(CARD_BG);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(12, 14, 10, 14)));
 
-        JPanel titleGroup = new JPanel(new GridLayout(2, 1, 0, 1));
-        titleGroup.setOpaque(false);
-        JLabel secTitle = new JLabel("DENAH PARKIR REALTIME (ARCHITECTURAL BLUEPRINT)");
-        secTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        secTitle.setForeground(TEXT_PRIMARY);
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
 
-        JLabel tip = new JLabel("Pilih kendaraan terparkir di denah untuk langsung memproses check-out.");
-        tip.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        tip.setForeground(BRAND_BLUE);
+        JLabel title = new JLabel(String.format(
+            "<html><b style='color:%s;'>Denah Parkir Realtime</b>"
+            + " <span style='color:%s;font-weight:normal;font-size:10px;'>"
+            + "- Klik kendaraan terparkir untuk Check-Out</span></html>",
+            hex(T1), hex(T2)));
+        title.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        title.setForeground(T1);
+        top.add(title, BorderLayout.WEST);
 
-        titleGroup.add(secTitle);
-        titleGroup.add(tip);
-
-        // Animated Barrier Gate Indicator
-        JPanel gateCanvas = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
+        JPanel gate = new JPanel() {
+            @Override protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                int w = getWidth();
-                int h = getHeight();
-
-                g2.setColor(BG_PAGE);
-                g2.fillRoundRect(0, 0, w, h, 6, 6);
-                g2.setColor(BORDER_SUBTLE);
-                g2.drawRoundRect(0, 0, w - 1, h - 1, 6, 6);
-
-                int pillarX = 16;
-                int pillarY = h - 6;
-                g2.setColor(PILLAR_COLOR);
-                g2.fillRect(pillarX - 3, pillarY - 14, 6, 14);
-
+                int cx = 14, cy = getHeight() - 6;
+                g2.setColor(PILLAR); g2.fillRect(cx - 3, cy - 14, 6, 14);
                 double rad = Math.toRadians(gateAngle);
-                int armLen = 26;
-                int armEndX = pillarX + (int) (armLen * Math.cos(rad));
-                int armEndY = (pillarY - 10) - (int) (armLen * Math.sin(rad));
-
-                g2.setStroke(new BasicStroke(3.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.setColor(gateStatusColor);
-                g2.drawLine(pillarX, pillarY - 10, armEndX, armEndY);
-
-                g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-                g2.drawString(gateStatusText, pillarX + 34, h / 2 + 4);
-
+                int ex = cx + (int)(28 * Math.cos(rad));
+                int ey = cy - 10 - (int)(28 * Math.sin(rad));
+                g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.setColor(gateColor);
+                g2.drawLine(cx, cy - 10, ex, ey);
+                g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+                g2.setColor(gateColor);
+                g2.drawString(gateLabel, cx + 36, getHeight() / 2 + 4);
                 g2.dispose();
             }
         };
-        gateCanvas.setPreferredSize(new Dimension(160, 30));
-        gateCanvas.setOpaque(false);
+        gate.setPreferredSize(new Dimension(150, 28));
+        gate.setOpaque(false);
+        top.add(gate, BorderLayout.EAST);
+        card.add(top, BorderLayout.NORTH);
 
-        topHeader.add(titleGroup, BorderLayout.WEST);
-        topHeader.add(gateCanvas, BorderLayout.EAST);
-        panel.add(topHeader, BorderLayout.NORTH);
-
-        // Blueprint Canvas
         blueprintContainer = new JPanel();
         blueprintContainer.setLayout(new BoxLayout(blueprintContainer, BoxLayout.Y_AXIS));
         blueprintContainer.setBackground(CARD_BG);
-        blueprintContainer.setBorder(new EmptyBorder(4, 2, 4, 2));
+        blueprintContainer.setBorder(new EmptyBorder(6, 0, 6, 0));
+        renderBlueprint();
 
-        renderBlueprintRows();
+        JScrollPane scroll = new JScrollPane(blueprintContainer);
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        scroll.getViewport().setBackground(CARD_BG);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(14);
+        card.add(scroll, BorderLayout.CENTER);
 
-        JScrollPane scrollPane = new JScrollPane(blueprintContainer);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_SUBTLE, 1));
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
-        panel.add(scrollPane, BorderLayout.CENTER);
+        JPanel leg = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 4));
+        leg.setOpaque(false);
+        leg.add(legend("Tersedia",    GREEN));
+        leg.add(legend("Terisi",      RED));
+        leg.add(legend("EV Charger",  PURPLE));
+        leg.add(legend("Zona Motor",  TEAL));
+        leg.add(legend("Zona Mobil",  BLUE));
+        card.add(leg, BorderLayout.SOUTH);
 
-        // Legend at Bottom
-        JPanel legend = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 4));
-        legend.setOpaque(false);
-        legend.add(createLegendChip("Tersedia", STATUS_SUCCESS));
-        legend.add(createLegendChip("Terisi (Klik Check-Out)", STATUS_DANGER));
-        legend.add(createLegendChip("EV Charger Ready", STATUS_PURPLE));
-        legend.add(createLegendChip("Zona Motor (Baris A)", STATUS_TEAL));
-        legend.add(createLegendChip("Zona Mobil (Baris B, C, D)", BRAND_BLUE));
-        panel.add(legend, BorderLayout.SOUTH);
-
-        return panel;
+        return card;
     }
 
-    private void renderBlueprintRows() {
+    private void renderBlueprint() {
         blueprintContainer.removeAll();
 
-        // 1. BARIS A (Motor, 9 Slot) + Ramp & Control Room
-        JPanel rowAWrapper = new JPanel(new BorderLayout(8, 0));
-        rowAWrapper.setOpaque(false);
+        addRow("A  MOTOR (9 slot)", TEAL,
+            new String[]{"A01","A02","A03","A04","A05","A06","A07","A08","A09"},
+            false);
 
-        JPanel rowABox = new JPanel(new BorderLayout(2, 2));
-        rowABox.setOpaque(false);
-        JLabel lblRowA = new JLabel("BARIS A - ZONA PARKIR MOTOR (9 SLOT)");
-        lblRowA.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblRowA.setForeground(STATUS_TEAL);
-        rowABox.add(lblRowA, BorderLayout.NORTH);
+        blueprintContainer.add(aisle("LAJUR MANUVER 1"));
 
-        JPanel rowASlots = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
-        rowASlots.setOpaque(false);
-        for (int i = 1; i <= 9; i++) {
-            SlotParkir s = findSlot(String.format("MTR-A%02d", i));
-            if (s != null) rowASlots.add(createBayComponent(s, 50, 76, "MTR"));
-        }
-        rowABox.add(rowASlots, BorderLayout.CENTER);
-        rowAWrapper.add(rowABox, BorderLayout.CENTER);
+        addRow("B  MOBIL (11 slot + tangga)", BLUE,
+            new String[]{"B01","B02","B03","B04","TANGGA","B06","B07","B08","B09","B10","B11","B12"},
+            true);
 
-        // Control Office & Ramp (Proportional Fit)
-        JPanel entranceOffice = new JPanel(new GridLayout(1, 2, 4, 0));
-        entranceOffice.setPreferredSize(new Dimension(170, 76));
-        entranceOffice.setOpaque(false);
-        entranceOffice.add(createFacilityTile("POS KONTROL", "Staff & CCTV", AISLE_BG));
-        entranceOffice.add(createFacilityTile("RAMP MASUK", "Lantai 1", new Color(238, 242, 255)));
-        rowAWrapper.add(entranceOffice, BorderLayout.EAST);
+        addRow("C  MOBIL (11 slot + tangga)", BLUE,
+            new String[]{"C01","C02","C03","C04","TANGGA","C06","C07","C08","C09","C10","C11","C12"},
+            true);
 
-        blueprintContainer.add(rowAWrapper);
-        blueprintContainer.add(Box.createVerticalStrut(3));
+        blueprintContainer.add(aisle("LAJUR MANUVER 2"));
 
-        // 2. LAJUR MANUVER 1
-        blueprintContainer.add(createDrivewayLane("LAJUR MANUVER 1 (MASUK & PARKIR)"));
-        blueprintContainer.add(Box.createVerticalStrut(3));
-
-        // 3. BARIS B (Mobil, 11 Slot + Tangga)
-        JPanel rowBBox = new JPanel(new BorderLayout(2, 2));
-        rowBBox.setOpaque(false);
-        JLabel lblRowB = new JLabel("BARIS B - ZONA MOBIL (11 SLOT + TANGGA DARURAT)");
-        lblRowB.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblRowB.setForeground(BRAND_BLUE);
-        rowBBox.add(lblRowB, BorderLayout.NORTH);
-
-        JPanel rowBSlots = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
-        rowBSlots.setOpaque(false);
-        for (int i = 1; i <= 12; i++) {
-            if (i == 5) {
-                rowBSlots.add(createStairTile());
-                continue;
-            }
-            SlotParkir s = findSlot(String.format("MBL-B%02d", i));
-            if (s != null) rowBSlots.add(createBayComponent(s, 48, 76, "MBL"));
-            if (i == 2 || i == 4 || i == 6 || i == 8 || i == 10) {
-                rowBSlots.add(createPillarTile());
-            }
-        }
-        rowBBox.add(rowBSlots, BorderLayout.CENTER);
-        blueprintContainer.add(rowBBox);
-        blueprintContainer.add(Box.createVerticalStrut(3));
-
-        // 4. BARIS C (Mobil, 11 Slot + Tangga)
-        JPanel rowCBox = new JPanel(new BorderLayout(2, 2));
-        rowCBox.setOpaque(false);
-        JLabel lblRowC = new JLabel("BARIS C - ZONA MOBIL (11 SLOT + TANGGA DARURAT)");
-        lblRowC.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblRowC.setForeground(BRAND_BLUE);
-        rowCBox.add(lblRowC, BorderLayout.NORTH);
-
-        JPanel rowCSlots = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
-        rowCSlots.setOpaque(false);
-        for (int i = 1; i <= 12; i++) {
-            if (i == 5) {
-                rowCSlots.add(createStairTile());
-                continue;
-            }
-            SlotParkir s = findSlot(String.format("MBL-C%02d", i));
-            if (s != null) rowCSlots.add(createBayComponent(s, 48, 76, "MBL"));
-            if (i == 2 || i == 4 || i == 6 || i == 8 || i == 10) {
-                rowCSlots.add(createPillarTile());
-            }
-        }
-        rowCBox.add(rowCSlots, BorderLayout.CENTER);
-        blueprintContainer.add(rowCBox);
-        blueprintContainer.add(Box.createVerticalStrut(3));
-
-        // 5. LAJUR MANUVER 2
-        blueprintContainer.add(createDrivewayLane("LAJUR MANUVER 2 (MENUJU KASIR & KELUAR)"));
-        blueprintContainer.add(Box.createVerticalStrut(3));
-
-        // 6. BARIS D (Mobil 12 Slot + EV 2 Slot)
-        JPanel rowDBox = new JPanel(new BorderLayout(2, 2));
-        rowDBox.setOpaque(false);
-        JLabel lblRowD = new JLabel("BARIS D - ZONA MOBIL (12 SLOT) & EV FAST CHARGER (2 SLOT)");
-        lblRowD.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblRowD.setForeground(TEXT_PRIMARY);
-        rowDBox.add(lblRowD, BorderLayout.NORTH);
-
-        JPanel rowDSlots = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
-        rowDSlots.setOpaque(false);
-        for (int i = 1; i <= 12; i++) {
-            SlotParkir s = findSlot(String.format("MBL-D%02d", i));
-            if (s != null) rowDSlots.add(createBayComponent(s, 46, 76, "MBL"));
-            if (i == 2 || i == 4 || i == 6 || i == 8 || i == 10 || i == 12) {
-                rowDSlots.add(createPillarTile());
-            }
-        }
-        SlotParkir ev1 = findSlot("EV-D13");
-        SlotParkir ev2 = findSlot("EV-D14");
-        if (ev1 != null) rowDSlots.add(createBayComponent(ev1, 46, 76, "EV"));
-        if (ev2 != null) rowDSlots.add(createBayComponent(ev2, 46, 76, "EV"));
-
-        rowDBox.add(rowDSlots, BorderLayout.CENTER);
-        blueprintContainer.add(rowDBox);
+        addRow("D  MOBIL (12 slot) + EV (2 slot)", T2,
+            new String[]{"D01","D02","D03","D04","D05","D06","D07","D08","D09","D10","D11","D12","EV1","EV2"},
+            false);
 
         blueprintContainer.revalidate();
         blueprintContainer.repaint();
     }
 
-    private SlotParkir findSlot(String id) {
-        for (SlotParkir s : gedung.getDaftarSlot()) {
-            if (s.getIdSlot().equalsIgnoreCase(id)) return s;
+    private void addRow(String rowLabel, Color labelColor, String[] ids, boolean hasPillars) {
+        JPanel wrapper = new JPanel(new BorderLayout(0, 3));
+        wrapper.setOpaque(false);
+        wrapper.setBorder(new EmptyBorder(2, 4, 4, 4));
+
+        JLabel lbl = new JLabel(rowLabel);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lbl.setForeground(labelColor);
+        wrapper.add(lbl, BorderLayout.NORTH);
+
+        JPanel slots = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 2));
+        slots.setOpaque(false);
+
+        for (int i = 0; i < ids.length; i++) {
+            String id = ids[i];
+            if ("TANGGA".equals(id)) {
+                slots.add(stairBlock());
+            } else {
+                SlotParkir s = findSlot(id);
+                if (s != null) slots.add(buildBay(s));
+            }
+            if (hasPillars && (i == 1 || i == 3 || i == 6 || i == 8 || i == 10))
+                slots.add(pillar());
         }
-        return null;
+
+        wrapper.add(slots, BorderLayout.CENTER);
+        blueprintContainer.add(wrapper);
     }
 
-    private JPanel createBayComponent(SlotParkir slot, int width, int height, String typeTag) {
-        boolean isSelected = (selectedSlot != null && selectedSlot.getIdSlot().equalsIgnoreCase(slot.getIdSlot()));
-        boolean isEV = "MOBIL_LISTRIK".equals(slot.getTipeSlot());
+    private JPanel buildBay(SlotParkir slot) {
+        boolean isEV    = "MOBIL_LISTRIK".equals(slot.getTipeSlot());
         boolean isMotor = "MOTOR".equals(slot.getTipeSlot());
+        boolean isFull  = slot.isTerisi();
+        boolean isSel   = selectedSlot != null
+            && selectedSlot.getIdSlot().equalsIgnoreCase(slot.getIdSlot());
 
-        JPanel bay = new JPanel(new BorderLayout(0, 2)) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
+        Color bgColor = isFull ? RED_LT : isEV ? PURPLE_LT : isMotor ? TEAL_LT : GREEN_LT;
+        Color bdColor = isSel  ? BLUE   : isFull ? new Color(153, 27, 27) : BORDER;
+
+        JPanel bay = new JPanel(new GridLayout(3, 1, 0, 1)) {
+            @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-                int w = getWidth();
-                int h = getHeight();
-
-                // Surface
-                Color bg;
-                if (slot.isTerisi()) {
-                    bg = SURFACE_DANGER;
-                } else if (isEV) {
-                    bg = SURFACE_PURPLE;
-                } else if (isMotor) {
-                    bg = SURFACE_TEAL;
-                } else {
-                    bg = SURFACE_SUCCESS;
-                }
-                g2.setColor(bg);
-                g2.fillRoundRect(0, 0, w, h, 6, 6);
-
-                // Border
-                if (isSelected) {
-                    g2.setColor(BORDER_ACTIVE);
-                    g2.setStroke(new BasicStroke(2.0f));
-                    g2.drawRoundRect(1, 1, w - 3, h - 3, 6, 6);
-                } else {
-                    g2.setColor(slot.isTerisi() ? new Color(254, 205, 211) : BORDER_SUBTLE);
-                    g2.setStroke(new BasicStroke(1.0f));
-                    g2.drawRoundRect(0, 0, w - 1, h - 1, 6, 6);
-                }
-
+                g2.setColor(bgColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 6, 6);
+                g2.setColor(bdColor);
+                g2.setStroke(new BasicStroke(isSel ? 2f : 1f));
+                int inset = isSel ? 1 : 0;
+                g2.drawRoundRect(inset, inset, getWidth()-1-inset, getHeight()-1-inset, 6, 6);
                 g2.dispose();
             }
         };
-        bay.setPreferredSize(new Dimension(width, height));
+        bay.setPreferredSize(new Dimension(50, 72));
         bay.setOpaque(false);
         bay.setBorder(new EmptyBorder(3, 3, 3, 3));
+        bay.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        // Header: ID Slot & Type
-        JPanel top = new JPanel(new BorderLayout());
-        top.setOpaque(false);
+        JLabel id = new JLabel(slot.getIdSlot(), SwingConstants.CENTER);
+        id.setFont(new Font("Segoe UI", Font.BOLD, 8));
+        id.setForeground(isEV ? PURPLE : isMotor ? TEAL : T2);
+        bay.add(id);
 
-        String shortId = slot.getIdSlot().substring(slot.getIdSlot().indexOf('-') + 1);
-        JLabel lblId = new JLabel(shortId);
-        lblId.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        lblId.setForeground(TEXT_PRIMARY);
-
-        JLabel lblTag = new JLabel(typeTag);
-        lblTag.setFont(new Font("Segoe UI", Font.BOLD, 8));
-        Color tagCol = isEV ? STATUS_PURPLE : (isMotor ? STATUS_TEAL : BRAND_BLUE);
-        lblTag.setForeground(tagCol);
-
-        top.add(lblId, BorderLayout.WEST);
-        top.add(lblTag, BorderLayout.EAST);
-        bay.add(top, BorderLayout.NORTH);
-
-        // Body: Plat Nomor (2 Baris agar TIDAK TERPOTONG!)
-        JPanel body = new JPanel(new GridLayout(2, 1, 0, 0));
-        body.setOpaque(false);
-
-        if (slot.isTerisi()) {
-            Kendaraan k = slot.getKendaraanParkir();
-            String plat = k.getPlatNomor();
-            String p1 = plat;
-            String p2 = "";
-            int firstSpace = plat.indexOf(' ');
-            if (firstSpace > 0) {
-                p1 = plat.substring(0, firstSpace);
-                p2 = plat.substring(firstSpace + 1);
-            }
-
-            JLabel l1 = new JLabel(p1, SwingConstants.CENTER);
-            l1.setFont(new Font("Segoe UI", Font.BOLD, 9));
-            l1.setForeground(STATUS_DANGER);
-
-            JLabel l2 = new JLabel(p2, SwingConstants.CENTER);
-            l2.setFont(new Font("Segoe UI", Font.BOLD, 9));
-            l2.setForeground(STATUS_DANGER);
-
-            body.add(l1);
-            body.add(l2);
+        if (isFull) {
+            String plat = slot.getKendaraanParkir().getPlatNomor();
+            JLabel p = new JLabel("<html><center style='color:#f87171;'>" + plat.replace(" ", "<br/>") + "</center></html>",
+                SwingConstants.CENTER);
+            p.setFont(new Font("Segoe UI", Font.BOLD, 8));
+            p.setForeground(RED);
+            bay.add(p);
         } else {
-            JLabel lblStatus = new JLabel("KOSONG", SwingConstants.CENTER);
-            lblStatus.setFont(new Font("Segoe UI", Font.BOLD, 8));
-            lblStatus.setForeground(isEV ? STATUS_PURPLE : STATUS_SUCCESS);
-
-            JLabel lblSub = new JLabel("Siap", SwingConstants.CENTER);
-            lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 8));
-            lblSub.setForeground(TEXT_MUTED);
-
-            body.add(lblStatus);
-            body.add(lblSub);
+            JLabel empty = new JLabel("KOSONG", SwingConstants.CENTER);
+            empty.setFont(new Font("Segoe UI", Font.PLAIN, 8));
+            empty.setForeground(T3);
+            bay.add(empty);
         }
-        bay.add(body, BorderLayout.CENTER);
 
-        attachSlotClickListener(bay, slot);
+        Color typeCol = isEV ? PURPLE : isMotor ? TEAL : BLUE;
+        String typeStr = isEV ? "EV" : isMotor ? "MTR" : "MBL";
+        JLabel type = new JLabel(typeStr, SwingConstants.CENTER);
+        type.setFont(new Font("Segoe UI", Font.PLAIN, 8));
+        type.setForeground(typeCol);
+        bay.add(type);
+
+        attachClick(bay, slot);
         return bay;
     }
 
-    private JPanel createDrivewayLane(String label) {
+    private void attachClick(Component c, SlotParkir slot) {
+        c.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) { onSlotClick(slot); }
+        });
+        if (c instanceof Container)
+            for (Component ch : ((Container) c).getComponents())
+                attachClick(ch, slot);
+    }
+
+    private void onSlotClick(SlotParkir slot) {
+        selectedSlot = slot;
+        if (slot.isTerisi()) {
+            selectedTiket = null;
+            for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
+                if (!t.isSudahDibayar() && t.getSlot().getIdSlot().equalsIgnoreCase(slot.getIdSlot())) {
+                    selectedTiket = t;
+                    break;
+                }
+            }
+            if (selectedTiket != null) {
+                tabs.setSelectedIndex(0);
+                Kendaraan k = slot.getKendaraanParkir();
+                txtTiket.setText(selectedTiket.getNomorTiket());
+                lblInfoKendaraan.setText(
+                    k.getPlatNomor() + "  " + k.getMerk()
+                    + "  |  Slot: " + slot.getIdSlot()
+                    + "  |  Masuk: " + selectedTiket.getJamMasuk() + ":00");
+                txtJamKeluar.setText(String.valueOf(Math.min(23, selectedTiket.getJamMasuk() + 2)));
+                updateTagihan();
+                lblNotice.setText("<html><span style='color:#34d399;'>Kendaraan dipilih. Periksa tagihan lalu klik Bayar.</span></html>");
+            }
+        } else {
+            tabs.setSelectedIndex(1);
+            if ("MOTOR".equals(slot.getTipeSlot())) cbTipe.setSelectedItem("MOTOR");
+            else if ("MOBIL_LISTRIK".equals(slot.getTipeSlot())) cbTipe.setSelectedItem("MOBIL_LISTRIK");
+            else cbTipe.setSelectedItem("MOBIL");
+            lblNotice.setText("<html><span style='color:#94a3b8;'>Slot <b>" + slot.getIdSlot() + "</b> kosong - isi form Check-In.</span></html>");
+        }
+        renderBlueprint();
+    }
+
+    private Component aisle(String label) {
         JPanel lane = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
+            @Override protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
-                int w = getWidth();
-                int h = getHeight();
-
-                g2.setColor(AISLE_BG);
-                g2.fillRect(0, 0, w, h);
-
-                g2.setColor(new Color(203, 213, 225));
-                Stroke dashed = new BasicStroke(1.2f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10.0f, new float[]{6.0f, 6.0f}, 0.0f);
-                g2.setStroke(dashed);
-                g2.drawLine(8, h / 2, w - 8, h / 2);
-
+                g2.setColor(AISLE); g2.fillRect(0, 0, getWidth(), getHeight());
+                g2.setColor(BORDER);
+                g2.setStroke(new BasicStroke(1f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+                    10f, new float[]{6f, 5f}, 0f));
+                g2.drawLine(10, getHeight()/2, getWidth()-10, getHeight()/2);
                 g2.dispose();
             }
         };
-        lane.setPreferredSize(new Dimension(800, 20));
-        lane.setBorder(BorderFactory.createMatteBorder(1, 0, 1, 0, BORDER_SUBTLE));
-
+        lane.setPreferredSize(new Dimension(800, 18));
         JLabel lbl = new JLabel(label, SwingConstants.CENTER);
-        lbl.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        lbl.setForeground(new Color(148, 163, 184));
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 9));
+        lbl.setForeground(T3);
         lane.add(lbl, BorderLayout.CENTER);
         return lane;
     }
 
-    private JPanel createPillarTile() {
-        JPanel p = new JPanel();
-        p.setPreferredSize(new Dimension(6, 76));
-        p.setBackground(PILLAR_COLOR);
-        p.setBorder(BorderFactory.createLineBorder(new Color(30, 41, 59), 1));
-        return p;
-    }
-
-    private JPanel createStairTile() {
-        JPanel s = new JPanel(new BorderLayout());
-        s.setPreferredSize(new Dimension(54, 76));
-        s.setBackground(AISLE_BG);
-        s.setBorder(BorderFactory.createDashedBorder(new Color(148, 163, 184), 2, 2));
-
-        JLabel l = new JLabel("<html><center style='font-size:8.5px;'><b>TANGGA</b><br/>LIFT</center></html>", SwingConstants.CENTER);
-        l.setForeground(new Color(71, 85, 105));
-        s.add(l, BorderLayout.CENTER);
-        return s;
-    }
-
-    private JPanel createFacilityTile(String title, String sub, Color bg) {
+    private JPanel stairBlock() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setBackground(bg);
-        p.setBorder(BorderFactory.createLineBorder(BORDER_SUBTLE, 1));
-
-        JLabel l = new JLabel(String.format("<html><center style='font-size:8.5px;'><b>%s</b><br/><span style='color:#64748b;'>%s</span></center></html>", title, sub), SwingConstants.CENTER);
+        p.setPreferredSize(new Dimension(50, 72));
+        p.setBackground(AISLE);
+        p.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        JLabel l = new JLabel("<html><center style='font-size:8px;color:#64748b;'>TANGGA<br/>LIFT</center></html>",
+            SwingConstants.CENTER);
+        l.setForeground(T3);
         p.add(l, BorderLayout.CENTER);
         return p;
     }
 
-    private void attachSlotClickListener(Component comp, SlotParkir slot) {
-        comp.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        comp.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                onSlotSelected(slot);
-            }
-        });
-        if (comp instanceof Container) {
-            for (Component child : ((Container) comp).getComponents()) {
-                attachSlotClickListener(child, slot);
-            }
-        }
+    private JPanel pillar() {
+        JPanel p = new JPanel();
+        p.setPreferredSize(new Dimension(5, 72));
+        p.setBackground(PILLAR);
+        return p;
     }
 
-    private void onSlotSelected(SlotParkir slot) {
-        this.selectedSlot = slot;
-
-        if (slot.isTerisi()) {
-            Kendaraan k = slot.getKendaraanParkir();
-
-            this.selectedTiket = null;
-            for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
-                if (!t.isSudahDibayar() && t.getSlot().getIdSlot().equalsIgnoreCase(slot.getIdSlot())) {
-                    this.selectedTiket = t;
-                    break;
-                }
-            }
-
-            if (selectedTiket != null) {
-                // Pindah langsung ke Tab Kasir Check-Out
-                actionTabbedPane.setSelectedIndex(0);
-
-                txtCariTiket.setText(selectedTiket.getNomorTiket());
-
-                // Set detail labels
-                lblDetailPlate.setText(k.getPlatNomor() + " (" + k.getMerk() + ")");
-                lblDetailSlot.setText(slot.getIdSlot() + " - Lantai " + slot.getLantai());
-                lblDetailInTime.setText(selectedTiket.getJamMasuk() + ":00 WIB");
-
-                // Set default exit hour (jamMasuk + 3)
-                int defaultKeluar = Math.min(23, selectedTiket.getJamMasuk() + 3);
-                txtJamKeluar.setText(String.valueOf(defaultKeluar));
-
-                updateCheckoutPreview();
-
-                lblCheckoutNotice.setText(String.format(
-                        "<html><span style='color:#059669;font-weight:600;'>Kendaraan siap check-out.</span> Total biaya telah dihitung otomatis di bawah.</html>"
-                ));
-            }
-        } else {
-            // Slot Kosong -> Arahkan ke Tab Check-In
-            actionTabbedPane.setSelectedIndex(1);
-            if ("MOTOR".equals(slot.getTipeSlot())) {
-                cbTipeKendaraan.setSelectedItem("MOTOR");
-            } else if ("MOBIL_LISTRIK".equals(slot.getTipeSlot())) {
-                cbTipeKendaraan.setSelectedItem("MOBIL_LISTRIK");
-            } else {
-                cbTipeKendaraan.setSelectedItem("MOBIL");
-            }
-            lblCheckoutNotice.setText(String.format("<html>Slot <b>%s</b> sedang kosong. Silakan gunakan form Check-In untuk registrasi masuk.</html>", slot.getIdSlot()));
-        }
-
-        renderBlueprintRows();
+    private JPanel legend(String label, Color col) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
+        p.setOpaque(false);
+        JPanel dot = new JPanel();
+        dot.setPreferredSize(new Dimension(8, 8));
+        dot.setBackground(col);
+        JLabel l = new JLabel(label);
+        l.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        l.setForeground(T2);
+        p.add(dot); p.add(l);
+        return p;
     }
 
-    private JPanel createOperationPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setPreferredSize(new Dimension(460, 780));
-        panel.setOpaque(false);
-
-        // 1. Skema Tarif Banner (Clean & Compact)
-        panel.add(createTariffBanner());
-        panel.add(Box.createVerticalStrut(10));
-
-        // 2. Operasional Kasir & Gate (Tabbed Pane: Check-Out vs Check-In)
-        panel.add(createTabbedActionCard());
-        panel.add(Box.createVerticalStrut(10));
-
-        // 3. Log Riwayat Transaksi (Selalu terlihat!)
-        panel.add(createLogTableCard());
-
-        return panel;
+    private JPanel buildSidebar() {
+        JPanel side = new JPanel();
+        side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
+        side.setPreferredSize(new Dimension(440, 800));
+        side.setOpaque(false);
+        side.add(buildTariffCard());
+        side.add(Box.createVerticalStrut(10));
+        side.add(buildOperationCard());
+        side.add(Box.createVerticalStrut(10));
+        side.add(buildLogCard());
+        return side;
     }
 
-    private JPanel createTariffBanner() {
+    private JPanel buildTariffCard() {
         JPanel card = new JPanel(new BorderLayout(0, 6));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(8, 12, 8, 12)
-        ));
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(10, 12, 10, 12)));
 
-        JLabel lblTitle = new JLabel("SKEMA TARIF PARKIR RESMI");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblTitle.setForeground(TEXT_MUTED);
-        card.add(lblTitle, BorderLayout.NORTH);
+        JLabel title = sectionTitle("Tarif Parkir");
+        card.add(title, BorderLayout.NORTH);
 
-        JPanel grid = new JPanel(new GridLayout(1, 3, 6, 0));
+        JPanel grid = new JPanel(new GridLayout(1, 3, 8, 0));
         grid.setOpaque(false);
-
-        grid.add(createTariffItem("MOTOR (Baris A)", "Rp 2.000", "+Rp 1.000/jam", STATUS_TEAL, SURFACE_TEAL));
-        grid.add(createTariffItem("MOBIL (Baris B-D)", "Rp 5.000", "+Rp 3.000/jam", BRAND_BLUE, new Color(239, 246, 255)));
-        grid.add(createTariffItem("EV CHARGER", "Diskon 20%", "Gratis Cas Baterai", STATUS_PURPLE, SURFACE_PURPLE));
-
+        grid.add(tariffItem("Motor",  "Rp 2.000", "+ Rp 1.000/jam", TEAL,   TEAL_LT));
+        grid.add(tariffItem("Mobil",  "Rp 5.000", "+ Rp 3.000/jam", BLUE,   BLUE_LT));
+        grid.add(tariffItem("EV",     "Diskon 20%","Harga Spesial",  PURPLE, PURPLE_LT));
         card.add(grid, BorderLayout.CENTER);
         return card;
     }
 
-    private JPanel createTariffItem(String name, String rate, String sub, Color textCol, Color bg) {
-        JPanel p = new JPanel(new GridLayout(3, 1, 0, 1));
+    private JPanel tariffItem(String name, String rate, String sub, Color accent, Color bg) {
+        JPanel p = new JPanel(new GridLayout(3, 1, 0, 2));
         p.setBackground(bg);
         p.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(4, 6, 4, 6)
-        ));
-
-        JLabel l1 = new JLabel(name);
-        l1.setFont(new Font("Segoe UI", Font.BOLD, 9));
-        l1.setForeground(textCol);
-
-        JLabel l2 = new JLabel(rate);
-        l2.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        l2.setForeground(TEXT_PRIMARY);
-
-        JLabel l3 = new JLabel(sub);
-        l3.setFont(new Font("Segoe UI", Font.PLAIN, 8));
-        l3.setForeground(TEXT_MUTED);
-
-        p.add(l1);
-        p.add(l2);
-        p.add(l3);
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(6, 8, 6, 8)));
+        JLabel n = new JLabel(name); n.setFont(new Font("Segoe UI", Font.BOLD, 10)); n.setForeground(accent);
+        JLabel r = new JLabel(rate); r.setFont(new Font("Segoe UI", Font.BOLD, 12)); r.setForeground(T1);
+        JLabel s = new JLabel(sub);  s.setFont(new Font("Segoe UI", Font.PLAIN, 9)); s.setForeground(T2);
+        p.add(n); p.add(r); p.add(s);
         return p;
     }
 
-    private JPanel createTabbedActionCard() {
+    private JPanel buildOperationCard() {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createLineBorder(BORDER_SUBTLE, 1));
+        card.setBorder(BorderFactory.createLineBorder(BORDER, 1));
 
-        actionTabbedPane = new JTabbedPane();
-        actionTabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        actionTabbedPane.setBackground(CARD_BG);
+        lblNotice = new JLabel("<html><span style='color:#94a3b8;'>Klik kendaraan di denah untuk check-out, atau gunakan tab Check-In.</span></html>");
+        lblNotice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        lblNotice.setForeground(T2);
+        lblNotice.setBorder(new EmptyBorder(6, 12, 6, 12));
+        card.add(lblNotice, BorderLayout.NORTH);
 
-        // Tab 1: Check-Out (Kasir)
-        actionTabbedPane.addTab("Check-Out & Kasir", createCheckOutTab());
-
-        // Tab 2: Check-In (Gate Masuk)
-        actionTabbedPane.addTab("Gate Masuk (Check-In)", createCheckInTab());
-
-        card.add(actionTabbedPane, BorderLayout.CENTER);
+        tabs = new JTabbedPane();
+        tabs.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        tabs.setBackground(CARD_BG);
+        tabs.setForeground(T1);
+        tabs.addTab("Check-Out / Kasir", buildCheckOutPanel());
+        tabs.addTab("Check-In / Masuk",  buildCheckInPanel());
+        card.add(tabs, BorderLayout.CENTER);
         return card;
     }
 
-    private JPanel createCheckOutTab() {
-        JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(new EmptyBorder(10, 12, 10, 12));
+    private JPanel buildCheckOutPanel() {
+        JPanel p = new JPanel(new BorderLayout(0, 8));
+        p.setBackground(CARD_BG);
+        p.setBorder(new EmptyBorder(10, 12, 10, 12));
 
-        // Alert info
-        lblCheckoutNotice = new JLabel("<html>Klik salah satu mobil terparkir di denah untuk memproses pembayaran.</html>");
-        lblCheckoutNotice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblCheckoutNotice.setForeground(TEXT_SECONDARY);
-        lblCheckoutNotice.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(4, 8, 4, 8)
-        ));
-        panel.add(lblCheckoutNotice, BorderLayout.NORTH);
+        lblInfoKendaraan = new JLabel("<html><i style='color:#94a3b8;'>Belum ada kendaraan dipilih.</i></html>");
+        lblInfoKendaraan.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        lblInfoKendaraan.setOpaque(true);
+        lblInfoKendaraan.setBackground(FIELD_BG);
+        lblInfoKendaraan.setForeground(T1);
+        lblInfoKendaraan.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1), new EmptyBorder(5, 8, 5, 8)));
+        p.add(lblInfoKendaraan, BorderLayout.NORTH);
 
-        // Details Grid
-        JPanel detailGrid = new JPanel(new GridLayout(5, 2, 8, 4));
-        detailGrid.setOpaque(false);
-
-        detailGrid.add(createFieldLabel("Nomor Tiket:"));
-        txtCariTiket = createStyledTextField("TKT-0002");
-        detailGrid.add(txtCariTiket);
-
-        detailGrid.add(createFieldLabel("Kendaraan:"));
-        lblDetailPlate = new JLabel("B 1234 ABC (Toyota Avanza)");
-        lblDetailPlate.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblDetailPlate.setForeground(TEXT_PRIMARY);
-        detailGrid.add(lblDetailPlate);
-
-        detailGrid.add(createFieldLabel("Lokasi Slot:"));
-        lblDetailSlot = new JLabel("MBL-B02 (Lantai 1)");
-        lblDetailSlot.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblDetailSlot.setForeground(TEXT_MUTED);
-        detailGrid.add(lblDetailSlot);
-
-        detailGrid.add(createFieldLabel("Jam Masuk:"));
-        lblDetailInTime = new JLabel("8:00 WIB");
-        lblDetailInTime.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblDetailInTime.setForeground(TEXT_MUTED);
-        detailGrid.add(lblDetailInTime);
-
-        detailGrid.add(createFieldLabel("Jam Keluar (0-23):"));
-        txtJamKeluar = createStyledTextField("12");
-        txtJamKeluar.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { updateCheckoutPreview(); }
-            public void removeUpdate(DocumentEvent e) { updateCheckoutPreview(); }
-            public void changedUpdate(DocumentEvent e) { updateCheckoutPreview(); }
-        });
-        detailGrid.add(txtJamKeluar);
-
-        panel.add(detailGrid, BorderLayout.CENTER);
-
-        // Bottom Billing & Pay Section
-        JPanel bottom = new JPanel(new BorderLayout(0, 6));
-        bottom.setOpaque(false);
-
-        JPanel payRow = new JPanel(new GridLayout(1, 2, 8, 0));
-        payRow.setOpaque(false);
-
-        JPanel mBox = new JPanel(new BorderLayout(0, 2));
-        mBox.setOpaque(false);
-        mBox.add(createFieldLabel("Metode Bayar:"), BorderLayout.NORTH);
-        cbMetodeBayar = new JComboBox<>(new String[]{"E_MONEY", "QRIS", "CASH"});
-        styleComboBox(cbMetodeBayar);
-        mBox.add(cbMetodeBayar, BorderLayout.CENTER);
-        payRow.add(mBox);
-
-        JPanel uBox = new JPanel(new BorderLayout(0, 2));
-        uBox.setOpaque(false);
-        uBox.add(createFieldLabel("Nominal Bayar (Rp):"), BorderLayout.NORTH);
-        txtUangBayar = createStyledTextField("14000");
-        uBox.add(txtUangBayar, BorderLayout.CENTER);
-        payRow.add(uBox);
-
-        bottom.add(payRow, BorderLayout.NORTH);
-
-        // Billing Preview
-        JPanel billPill = new JPanel(new BorderLayout());
-        billPill.setBackground(new Color(239, 246, 255));
-        billPill.setBorder(new EmptyBorder(6, 10, 6, 10));
-        JLabel lblBTitle = new JLabel("Total Tagihan:");
-        lblBTitle.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        lblBTitle.setForeground(TEXT_MUTED);
-
-        lblBillingPreview = new JLabel("Rp 14.000 (4 Jam)");
-        lblBillingPreview.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblBillingPreview.setForeground(BRAND_BLUE);
-
-        billPill.add(lblBTitle, BorderLayout.WEST);
-        billPill.add(lblBillingPreview, BorderLayout.EAST);
-        bottom.add(billPill, BorderLayout.CENTER);
-
-        JButton btnKeluar = createStyledButton("Bayar & Buka Portal", STATUS_SUCCESS, Color.WHITE);
-        btnKeluar.addActionListener(e -> handleCheckOut());
-        bottom.add(btnKeluar, BorderLayout.SOUTH);
-
-        panel.add(bottom, BorderLayout.SOUTH);
-        return panel;
-    }
-
-    private JPanel createCheckInTab() {
-        JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(new EmptyBorder(10, 12, 10, 12));
-
-        JPanel form = new JPanel(new GridLayout(5, 2, 8, 8));
+        JPanel form = new JPanel(new GridLayout(4, 2, 8, 6));
         form.setOpaque(false);
 
-        form.add(createFieldLabel("Nomor Plat:"));
-        txtPlat = createStyledTextField("B 9988 PBO");
-        form.add(txtPlat);
+        form.add(fieldLabel("No. Tiket"));
+        txtTiket = field("TKT-0002");
+        form.add(txtTiket);
 
-        form.add(createFieldLabel("Tipe Kendaraan:"));
-        cbTipeKendaraan = new JComboBox<>(new String[]{"MOBIL", "MOTOR", "MOBIL_LISTRIK"});
-        styleComboBox(cbTipeKendaraan);
-        cbTipeKendaraan.addActionListener(e -> updateCheckInHint());
-        form.add(cbTipeKendaraan);
+        form.add(fieldLabel("Jam Keluar (0-23)"));
+        txtJamKeluar = field("12");
+        txtJamKeluar.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { updateTagihan(); }
+            public void removeUpdate(DocumentEvent e) { updateTagihan(); }
+            public void changedUpdate(DocumentEvent e) { updateTagihan(); }
+        });
+        form.add(txtJamKeluar);
 
-        form.add(createFieldLabel("Merk / Model:"));
-        txtMerk = createStyledTextField("Honda HR-V");
-        form.add(txtMerk);
+        form.add(fieldLabel("Metode Bayar"));
+        cbMetode = new JComboBox<>(new String[]{"E_MONEY", "QRIS", "CASH"});
+        styleCombo(cbMetode);
+        form.add(cbMetode);
 
-        form.add(createFieldLabel("Jam Masuk (0-23):"));
-        txtJamMasuk = createStyledTextField("11");
-        form.add(txtJamMasuk);
+        form.add(fieldLabel("Nominal Bayar (Rp)"));
+        txtUangBayar = field("0");
+        form.add(txtUangBayar);
 
-        form.add(createFieldLabel("Alokasi Sistem:"));
-        lblAlokasiInfo = new JLabel("Dialokasikan ke Baris B, C, atau D");
-        lblAlokasiInfo.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblAlokasiInfo.setForeground(BRAND_BLUE);
-        form.add(lblAlokasiInfo);
+        p.add(form, BorderLayout.CENTER);
 
-        panel.add(form, BorderLayout.CENTER);
+        JPanel bot = new JPanel(new BorderLayout(0, 6));
+        bot.setOpaque(false);
 
-        JButton btnMasuk = createStyledButton("Check-In Kendaraan & Terbitkan Tiket", BRAND_BLUE, Color.WHITE);
+        JPanel tagihanBar = new JPanel(new BorderLayout());
+        tagihanBar.setBackground(BLUE_LT);
+        tagihanBar.setBorder(new EmptyBorder(7, 10, 7, 10));
+        JLabel tl = new JLabel("Total Tagihan:");
+        tl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tl.setForeground(T2);
+        lblTagihan = new JLabel("-");
+        lblTagihan.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTagihan.setForeground(BLUE);
+        tagihanBar.add(tl, BorderLayout.WEST);
+        tagihanBar.add(lblTagihan, BorderLayout.EAST);
+        bot.add(tagihanBar, BorderLayout.NORTH);
+
+        JButton btnBayar = button("Bayar & Buka Portal", GREEN, WHITE);
+        btnBayar.addActionListener(e -> handleCheckOut());
+        bot.add(btnBayar, BorderLayout.SOUTH);
+        p.add(bot, BorderLayout.SOUTH);
+        return p;
+    }
+
+    private JPanel buildCheckInPanel() {
+        JPanel p = new JPanel(new BorderLayout(0, 8));
+        p.setBackground(CARD_BG);
+        p.setBorder(new EmptyBorder(10, 12, 10, 12));
+
+        JPanel form = new JPanel(new GridLayout(5, 2, 8, 6));
+        form.setOpaque(false);
+
+        form.add(fieldLabel("Nomor Plat"));     txtPlat = field("B 1234 XYZ"); form.add(txtPlat);
+        form.add(fieldLabel("Tipe Kendaraan"));
+        cbTipe = new JComboBox<>(new String[]{"MOBIL", "MOTOR", "MOBIL_LISTRIK"});
+        styleCombo(cbTipe);
+        cbTipe.addActionListener(e -> updateAlokasiHint());
+        form.add(cbTipe);
+
+        form.add(fieldLabel("Merk / Model"));  txtMerk = field("Toyota Avanza"); form.add(txtMerk);
+        form.add(fieldLabel("Jam Masuk (0-23)")); txtJamMasuk = field("10"); form.add(txtJamMasuk);
+
+        form.add(fieldLabel("Alokasi Sistem"));
+        lblAlokasiHint = new JLabel("Baris B, C, atau D");
+        lblAlokasiHint.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblAlokasiHint.setForeground(BLUE);
+        form.add(lblAlokasiHint);
+
+        p.add(form, BorderLayout.CENTER);
+
+        JPanel botButtons = new JPanel(new GridLayout(1, 2, 8, 0));
+        botButtons.setOpaque(false);
+
+        JButton btnScanCam = button("📷 Scan AI Kamera", PURPLE, WHITE);
+        btnScanCam.addActionListener(e -> openCameraScannerDialog());
+
+        JButton btnMasuk = button("Check-In & Terbitkan", BLUE, WHITE);
         btnMasuk.addActionListener(e -> handleCheckIn());
-        panel.add(btnMasuk, BorderLayout.SOUTH);
 
-        return panel;
+        botButtons.add(btnScanCam);
+        botButtons.add(btnMasuk);
+        p.add(botButtons, BorderLayout.SOUTH);
+        return p;
     }
 
-    private void updateCheckInHint() {
-        String tipe = (String) cbTipeKendaraan.getSelectedItem();
-        if ("MOTOR".equals(tipe)) {
-            lblAlokasiInfo.setText("Dialokasikan ke Baris A (Zona Motor)");
-            lblAlokasiInfo.setForeground(STATUS_TEAL);
-        } else if ("MOBIL_LISTRIK".equals(tipe)) {
-            lblAlokasiInfo.setText("Prioritas ke Slot EV-D13 / D14");
-            lblAlokasiInfo.setForeground(STATUS_PURPLE);
-        } else {
-            lblAlokasiInfo.setText("Dialokasikan ke Baris B, C, atau D");
-            lblAlokasiInfo.setForeground(BRAND_BLUE);
-        }
-    }
-
-    private JPanel createLogTableCard() {
+    private JPanel buildLogCard() {
         JPanel card = new JPanel(new BorderLayout(0, 6));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(8, 12, 10, 12)
-        ));
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(8, 12, 10, 12)));
 
-        JLabel lblTitle = new JLabel("RIWAYAT TRANSAKSI KASIR");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblTitle.setForeground(TEXT_MUTED);
-        card.add(lblTitle, BorderLayout.NORTH);
+        card.add(sectionTitle("Riwayat Transaksi"), BorderLayout.NORTH);
 
-        String[] cols = {"No. Tiket", "Plat", "Tipe", "Slot", "Waktu", "Status", "Biaya"};
-        logTableModel = new DefaultTableModel(cols, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) {
-                return false;
-            }
+        String[] cols = {"Tiket", "Plat", "Tipe", "Slot", "Waktu", "Status", "Biaya"};
+        logModel = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
         };
 
-        logTable = new JTable(logTableModel);
-        logTable.setBackground(CARD_BG);
-        logTable.setForeground(TEXT_SECONDARY);
-        logTable.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        logTable.setRowHeight(22);
-        logTable.setShowGrid(false);
-        logTable.setSelectionBackground(new Color(239, 246, 255));
-        logTable.setSelectionForeground(BRAND_BLUE);
+        JTable tbl = new JTable(logModel);
+        tbl.setBackground(FIELD_BG);
+        tbl.setForeground(T1);
+        tbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tbl.setRowHeight(22);
+        tbl.setShowGrid(false);
+        tbl.setSelectionBackground(BLUE_LT);
+        tbl.setSelectionForeground(WHITE);
+        tbl.getTableHeader().setBackground(CARD_BG);
+        tbl.getTableHeader().setForeground(T2);
+        tbl.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 9));
+        tbl.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
 
-        logTable.getTableHeader().setBackground(BG_PAGE);
-        logTable.getTableHeader().setForeground(TEXT_MUTED);
-        logTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 9));
-        logTable.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_SUBTLE));
-
-        DefaultTableCellRenderer center = new DefaultTableCellRenderer();
-        center.setHorizontalAlignment(SwingConstants.CENTER);
-        for (int i = 0; i < logTable.getColumnCount(); i++) {
-            logTable.getColumnModel().getColumn(i).setCellRenderer(center);
-        }
-
-        logTable.addMouseListener(new MouseAdapter() {
+        DefaultTableCellRenderer ctr = new DefaultTableCellRenderer() {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                int row = logTable.getSelectedRow();
-                if (row >= 0 && row < logTableModel.getRowCount()) {
-                    String noTiket = (String) logTableModel.getValueAt(row, 0);
-                    for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
-                        if (t.getNomorTiket().equalsIgnoreCase(noTiket)) {
-                            onSlotSelected(t.getSlot());
-                            break;
+            public Component getTableCellRendererComponent(JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                if (!isSelected) {
+                    c.setBackground(FIELD_BG);
+                    c.setForeground(T1);
+                } else {
+                    c.setBackground(BLUE_LT);
+                    c.setForeground(WHITE);
+                }
+                return c;
+            }
+        };
+        ctr.setHorizontalAlignment(SwingConstants.CENTER);
+        for (int i = 0; i < tbl.getColumnCount(); i++)
+            tbl.getColumnModel().getColumn(i).setCellRenderer(ctr);
+
+        tbl.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                int row = tbl.getSelectedRow();
+                if (row >= 0) {
+                    String tiket = (String) logModel.getValueAt(row, 0);
+                    for (KarcisParkir t : gedung.getRiwayatTransaksi())
+                        if (t.getNomorTiket().equalsIgnoreCase(tiket)) { onSlotClick(t.getSlot()); break; }
+                }
+            }
+        });
+
+        JScrollPane sp = new JScrollPane(tbl);
+        sp.setPreferredSize(new Dimension(416, 160));
+        sp.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        sp.getViewport().setBackground(FIELD_BG);
+        sp.setBackground(CARD_BG);
+        card.add(sp, BorderLayout.CENTER);
+        return card;
+    }
+
+    /**
+     * Membuka Dialog Live Video Kamera & AI Vision Scanner Gerbang
+     */
+    private void openCameraScannerDialog() {
+        JDialog dlg = new JDialog(this, "Live Video Camera & AI Vision Scanner Gerbang", true);
+        dlg.getContentPane().setBackground(BG);
+        dlg.setLayout(new BorderLayout(12, 12));
+        dlg.setSize(1000, 680);
+        dlg.setLocationRelativeTo(this);
+
+        final BufferedImage[] currentFrameHolder = new BufferedImage[1];
+        final boolean[] isVehicleDetected = new boolean[]{false};
+        final String[] hudStatusText = new String[]{"MENUNGGU KENDARAAN..."};
+
+        // Header Dialog
+        JPanel dlgHeader = new JPanel(new BorderLayout());
+        dlgHeader.setBackground(CARD_BG);
+        dlgHeader.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
+            new EmptyBorder(12, 16, 12, 16)));
+
+        JLabel headerTitle = new JLabel(String.format(
+            "<html><b style='font-size:14px;color:%s;'>🎥 Live Video Kamera Gerbang & AI Vision Auto-Detect</b>"
+            + "<br/><span style='color:%s;font-size:10px;'>Streaming video realtime &bull; Deteksi pergerakan mobil otomatis &bull; Verifikasi AI Orion</span></html>",
+            hex(T1), hex(T2)));
+        dlgHeader.add(headerTitle, BorderLayout.WEST);
+
+        JLabel badgeStatus = new JLabel("ai_config.properties (Ready)");
+        badgeStatus.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        badgeStatus.setForeground(PURPLE);
+        badgeStatus.setBackground(PURPLE_LT);
+        badgeStatus.setOpaque(true);
+        badgeStatus.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(PURPLE, 1), new EmptyBorder(4, 8, 4, 8)));
+        dlgHeader.add(badgeStatus, BorderLayout.EAST);
+        dlg.add(dlgHeader, BorderLayout.NORTH);
+
+        // Body: 2 Kolom (Kiri: Video Screen + Controls, Kanan: Hasil AI & Pengaturan)
+        JPanel content = new JPanel(new GridLayout(1, 2, 14, 0));
+        content.setBackground(BG);
+        content.setBorder(new EmptyBorder(0, 14, 0, 14));
+
+        // --- PANEL KIRI: LIVE VIDEO SCREEN ---
+        JPanel leftCard = new JPanel(new BorderLayout(0, 8));
+        leftCard.setBackground(CARD_BG);
+        leftCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(12, 12, 12, 12)));
+
+        JPanel videoHeader = new JPanel(new BorderLayout());
+        videoHeader.setOpaque(false);
+        JLabel leftTitle = sectionTitle("Live Feed Kamera Gerbang");
+        JLabel lblLiveBadge = new JLabel("🔴 STREAMING AKTIF");
+        lblLiveBadge.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblLiveBadge.setForeground(GREEN);
+        videoHeader.add(leftTitle, BorderLayout.WEST);
+        videoHeader.add(lblLiveBadge, BorderLayout.EAST);
+        leftCard.add(videoHeader, BorderLayout.NORTH);
+
+        JLabel videoScreen = new JLabel("", SwingConstants.CENTER);
+        videoScreen.setPreferredSize(new Dimension(450, 310));
+        videoScreen.setOpaque(true);
+        videoScreen.setBackground(Color.BLACK);
+        videoScreen.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        leftCard.add(videoScreen, BorderLayout.CENTER);
+
+        // Sub Controls
+        JPanel leftActions = new JPanel(new GridLayout(2, 2, 6, 6));
+        leftActions.setOpaque(false);
+
+        JButton btnToggleVideo = button("⏹ Hentikan Video", RED, WHITE);
+        JButton btnSimulateCar = button("🚗 Simulasi Mobil Masuk (Xenia)", BLUE, WHITE);
+        JButton btnVideoFile   = button("📁 Buka File Video...", CARD_BG, T1);
+        JButton btnManualSnap  = button("📸 Snapshot Manual", CARD_BG, T1);
+
+        leftActions.add(btnToggleVideo);
+        leftActions.add(btnSimulateCar);
+        leftActions.add(btnVideoFile);
+        leftActions.add(btnManualSnap);
+        leftCard.add(leftActions, BorderLayout.SOUTH);
+
+        content.add(leftCard);
+
+        // --- PANEL KANAN: STATUS SENSOR & AI DETEKSI ---
+        JPanel rightCard = new JPanel(new BorderLayout(0, 10));
+        rightCard.setBackground(CARD_BG);
+        rightCard.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(12, 14, 12, 14)));
+
+        JPanel rightTop = new JPanel();
+        rightTop.setLayout(new BoxLayout(rightTop, BoxLayout.Y_AXIS));
+        rightTop.setOpaque(false);
+
+        rightTop.add(sectionTitle("Sensor & Opsi Deteksi Otomatis"));
+        rightTop.add(Box.createVerticalStrut(4));
+
+        JCheckBox chkAutoSend = new JCheckBox("Deteksi Otomatis (Kirim ke AI saat mobil terdeteksi)", true);
+        chkAutoSend.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        chkAutoSend.setForeground(GREEN);
+        chkAutoSend.setOpaque(false);
+        rightTop.add(chkAutoSend);
+
+        JCheckBox chkAutoCheckIn = new JCheckBox("Auto Check-In & Buka Portal saat plat terverifikasi", false);
+        chkAutoCheckIn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        chkAutoCheckIn.setForeground(T2);
+        chkAutoCheckIn.setOpaque(false);
+        rightTop.add(chkAutoCheckIn);
+
+        rightTop.add(Box.createVerticalStrut(10));
+        rightTop.add(sectionTitle("Kredensial AI Vision (Tersimpan)"));
+
+        JPanel credGrid = new JPanel(new GridLayout(2, 2, 8, 4));
+        credGrid.setOpaque(false);
+        credGrid.add(fieldLabel("Endpoint AI"));
+        JLabel lblEp = new JLabel(savedEndpoint);
+        lblEp.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        lblEp.setForeground(T2);
+        credGrid.add(lblEp);
+
+        credGrid.add(fieldLabel("API Key"));
+        JLabel lblKey = new JLabel(AIVisionService.maskApiKey(savedApiKey));
+        lblKey.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        lblKey.setForeground(T2);
+        credGrid.add(lblKey);
+        rightTop.add(credGrid);
+
+        rightTop.add(Box.createVerticalStrut(10));
+        JLabel lblScanStatus = new JLabel("<html><span style='color:#38bdf8;font-size:10px;'>Sensor aktif: Kamera sedang memindai gerbang masuk...</span></html>");
+        lblScanStatus.setBorder(new EmptyBorder(2, 2, 2, 2));
+        rightTop.add(lblScanStatus);
+
+        rightCard.add(rightTop, BorderLayout.NORTH);
+
+        // Form Hasil Deteksi
+        JPanel resultPanel = new JPanel();
+        resultPanel.setLayout(new BoxLayout(resultPanel, BoxLayout.Y_AXIS));
+        resultPanel.setOpaque(false);
+
+        resultPanel.add(sectionTitle("Hasil Verifikasi AI Terakhir"));
+        resultPanel.add(Box.createVerticalStrut(4));
+
+        JPanel resultGrid = new JPanel(new GridLayout(3, 2, 8, 6));
+        resultGrid.setOpaque(false);
+
+        resultGrid.add(fieldLabel("Nomor Plat Terdeteksi"));
+        JTextField txtOutPlat = field("-");
+        txtOutPlat.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        txtOutPlat.setForeground(BLUE);
+        resultGrid.add(txtOutPlat);
+
+        resultGrid.add(fieldLabel("Merk / Model Terdeteksi"));
+        JTextField txtOutMerk = field("-");
+        resultGrid.add(txtOutMerk);
+
+        resultGrid.add(fieldLabel("Tipe Kendaraan"));
+        JComboBox<String> cbOutTipe = new JComboBox<>(new String[]{"MOBIL", "MOTOR", "MOBIL_LISTRIK"});
+        styleCombo(cbOutTipe);
+        resultGrid.add(cbOutTipe);
+
+        resultPanel.add(resultGrid);
+        rightCard.add(resultPanel, BorderLayout.CENTER);
+
+        // Tombol Bawah
+        JPanel botExec = new JPanel(new GridLayout(1, 2, 8, 0));
+        botExec.setOpaque(false);
+
+        JButton btnApply = button("✅ Terapkan ke Form", GREEN, WHITE);
+        JButton btnDirect = button("🚀 Auto Check-In & Buka Gate", BLUE, WHITE);
+
+        botExec.add(btnApply);
+        botExec.add(btnDirect);
+        rightCard.add(botExec, BorderLayout.SOUTH);
+
+        content.add(rightCard);
+        dlg.add(content, BorderLayout.CENTER);
+
+        // Inisialisasi Live Streamer
+        final LiveCameraStreamer[] streamerHolder = new LiveCameraStreamer[1];
+        final LiveCameraStreamer streamer = new LiveCameraStreamer(new LiveCameraStreamer.StreamListener() {
+            @Override
+            public void onNewFrame(BufferedImage frame) {
+                currentFrameHolder[0] = frame;
+                SwingUtilities.invokeLater(() -> {
+                    drawVideoFrameWithHUD(videoScreen, frame, isVehicleDetected[0], hudStatusText[0]);
+                });
+            }
+
+            @Override
+            public void onVehicleDetected(BufferedImage frame) {
+                if (!chkAutoSend.isSelected()) return;
+
+                isVehicleDetected[0] = true;
+                hudStatusText[0] = "MOBIL TERDETEKSI! MENGIRIM KE AI...";
+                SwingUtilities.invokeLater(() -> {
+                    lblScanStatus.setText("<html><span style='color:#a855f7;'>🚗 Mobil terdeteksi di video! Mengirim ke AI Orion...</span></html>");
+                    drawVideoFrameWithHUD(videoScreen, frame, true, hudStatusText[0]);
+                });
+
+                // Jalankan analisis vision di background worker
+                new Thread(() -> {
+                    try {
+                        DetectionResult res = AIVisionService.analyzeVehicleImage(frame, savedEndpoint, savedApiKey, savedModel);
+                        SwingUtilities.invokeLater(() -> {
+                            isVehicleDetected[0] = false;
+                            hudStatusText[0] = "VERIFIKASI AI: " + res.plat + " (" + res.merk + ")";
+                            txtOutPlat.setText(res.plat);
+                            txtOutMerk.setText(res.merk);
+                            cbOutTipe.setSelectedItem(res.tipe);
+
+                            if (res.isOfflineFallback) {
+                                lblScanStatus.setText("<html><span style='color:#f59e0b;'>[Standby] " + res.statusMessage + "</span></html>");
+                            } else {
+                                lblScanStatus.setText("<html><span style='color:#22c55e;'>✅ <b>AI Verified:</b> " + res.plat + " (" + res.merk + ")</span></html>");
+                            }
+
+                            if (chkAutoCheckIn.isSelected()) {
+                                if (streamerHolder[0] != null) streamerHolder[0].stopStream();
+                                dlg.dispose();
+                                txtPlat.setText(res.plat);
+                                txtMerk.setText(res.merk);
+                                cbTipe.setSelectedItem(res.tipe);
+                                updateAlokasiHint();
+                                handleCheckIn();
+                            }
+                        });
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> {
+                            isVehicleDetected[0] = false;
+                            hudStatusText[0] = "ERROR AI: " + ex.getMessage();
+                            lblScanStatus.setText("<html><span style='color:#ef4444;'>Error AI: " + ex.getMessage() + "</span></html>");
+                        });
+                    }
+                }).start();
+            }
+
+            @Override
+            public void onStatusChange(String status, boolean isError) {
+                SwingUtilities.invokeLater(() -> {
+                    lblScanStatus.setText("<html><span style='color:" + (isError ? "#ef4444" : "#38bdf8") + ";'>" + status + "</span></html>");
+                });
+            }
+        });
+        streamerHolder[0] = streamer;
+
+        // Langsung mulai video kamera saat dialog dibuka
+        streamer.startLiveCamera();
+
+        btnToggleVideo.addActionListener(e -> {
+            if (streamer.isStreaming()) {
+                streamer.stopStream();
+                btnToggleVideo.setText("▶ Mulai Live Video");
+                btnToggleVideo.setBackground(TEAL);
+                lblLiveBadge.setText("⏹ VIDEO BERHENTI");
+                lblLiveBadge.setForeground(T3);
+            } else {
+                streamer.startLiveCamera();
+                btnToggleVideo.setText("⏹ Hentikan Video");
+                btnToggleVideo.setBackground(RED);
+                lblLiveBadge.setText("🔴 STREAMING AKTIF");
+                lblLiveBadge.setForeground(GREEN);
+            }
+        });
+
+        btnSimulateCar.addActionListener(e -> {
+            File s = new File("sample_car.jpg");
+            if (s.exists()) {
+                try {
+                    BufferedImage carImg = ImageIO.read(s);
+                    if (carImg != null) {
+                        currentFrameHolder[0] = carImg;
+                        streamer.triggerManualDetection(carImg);
+                    }
+                } catch (Exception ex) {
+                    warn("Gagal memuat sample_car.jpg: " + ex.getMessage());
+                }
+            } else {
+                warn("File sample_car.jpg tidak ditemukan.");
+            }
+        });
+
+        btnVideoFile.addActionListener(e -> {
+            JFileChooser ch = new JFileChooser(".");
+            ch.setFileFilter(new FileNameExtensionFilter("Video & Gambar (*.mp4, *.mov, *.jpg, *.png)", "mp4", "mov", "mkv", "avi", "jpg", "jpeg", "png"));
+            if (ch.showOpenDialog(dlg) == JFileChooser.APPROVE_OPTION) {
+                File sel = ch.getSelectedFile();
+                String name = sel.getName().toLowerCase();
+                if (name.endsWith(".mp4") || name.endsWith(".mov") || name.endsWith(".mkv") || name.endsWith(".avi")) {
+                    streamer.startVideoFile(sel);
+                    btnToggleVideo.setText("⏹ Hentikan Video");
+                    btnToggleVideo.setBackground(RED);
+                    lblLiveBadge.setText("▶ VIDEO FILE: " + sel.getName());
+                    lblLiveBadge.setForeground(BLUE);
+                } else {
+                    try {
+                        BufferedImage img = ImageIO.read(sel);
+                        if (img != null) {
+                            currentFrameHolder[0] = img;
+                            streamer.triggerManualDetection(img);
                         }
+                    } catch (Exception ex) {
+                        warn("Gagal membaca gambar: " + ex.getMessage());
                     }
                 }
             }
         });
 
-        JScrollPane sp = new JScrollPane(logTable);
-        sp.setPreferredSize(new Dimension(420, 170));
-        sp.setBorder(BorderFactory.createLineBorder(BORDER_SUBTLE, 1));
-        sp.getViewport().setBackground(CARD_BG);
-        card.add(sp, BorderLayout.CENTER);
+        btnManualSnap.addActionListener(e -> {
+            if (currentFrameHolder[0] != null) {
+                streamer.triggerManualDetection(currentFrameHolder[0]);
+            } else {
+                warn("Belum ada frame video aktif.");
+            }
+        });
 
-        return card;
+        btnApply.addActionListener(e -> {
+            streamer.stopStream();
+            txtPlat.setText(txtOutPlat.getText().trim());
+            txtMerk.setText(txtOutMerk.getText().trim());
+            cbTipe.setSelectedItem(cbOutTipe.getSelectedItem());
+            updateAlokasiHint();
+            tabs.setSelectedIndex(1);
+            dlg.dispose();
+            lblNotice.setText("<html><span style='color:#22c55e;'>Data hasil verifikasi video AI diterapkan ke Form Check-In!</span></html>");
+        });
+
+        btnDirect.addActionListener(e -> {
+            streamer.stopStream();
+            txtPlat.setText(txtOutPlat.getText().trim());
+            txtMerk.setText(txtOutMerk.getText().trim());
+            cbTipe.setSelectedItem(cbOutTipe.getSelectedItem());
+            updateAlokasiHint();
+            tabs.setSelectedIndex(1);
+            dlg.dispose();
+            handleCheckIn();
+        });
+
+        dlg.addWindowListener(new WindowAdapter() {
+            @Override public void windowClosing(WindowEvent e) {
+                streamer.stopStream();
+            }
+        });
+
+        dlg.setVisible(true);
     }
 
-    private void updateCheckoutPreview() {
-        String noTiket = txtCariTiket.getText().trim();
-        KarcisParkir t = null;
-        for (KarcisParkir item : gedung.getRiwayatTransaksi()) {
-            if (item.getNomorTiket().equalsIgnoreCase(noTiket) && !item.isSudahDibayar()) {
-                t = item;
-                break;
-            }
-        }
+    private void drawVideoFrameWithHUD(JLabel lbl, BufferedImage frame, boolean isDetected, String hudStatus) {
+        if (frame == null) return;
+        int targetW = 450, targetH = 310;
+        BufferedImage combined = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = combined.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
-        if (t == null) {
-            lblBillingPreview.setText("Pilih kendaraan terisi");
-            return;
-        }
+        double scale = Math.max((double) targetW / frame.getWidth(), (double) targetH / frame.getHeight());
+        int sw = (int) (frame.getWidth() * scale);
+        int sh = (int) (frame.getHeight() * scale);
+        int ox = (targetW - sw) / 2;
+        int oy = (targetH - sh) / 2;
+        g2.drawImage(frame, ox, oy, sw, sh, null);
 
-        try {
-            int jamKeluar = Integer.parseInt(txtJamKeluar.getText().trim());
-            int durasi = t.hitungDurasi(jamKeluar);
+        // Scanner Reticle di Tengah
+        int rw = 280, rh = 180;
+        int rx = (targetW - rw) / 2;
+        int ry = (targetH - rh) / 2;
 
-            boolean isMotor = "MOTOR".equals(t.getKendaraan().getTipe());
-            double tarifPertama = isMotor ? gedung.getTarifJamPertamaMotor() : gedung.getTarifJamPertamaMobil();
-            double tarifBerikutnya = isMotor ? gedung.getTarifPerJamMotor() : gedung.getTarifPerJamMobil();
+        Color hudColor = isDetected ? new Color(34, 197, 94) : new Color(59, 130, 246);
+        g2.setColor(hudColor);
+        g2.setStroke(new BasicStroke(2.5f));
 
-            double subtotal = tarifPertama + (durasi > 1 ? (durasi - 1) * tarifBerikutnya : 0);
-            if (t.getKendaraan().isMobilListrik()) {
-                subtotal = subtotal * 0.80;
-            }
+        int cLen = 22;
+        g2.drawLine(rx, ry, rx + cLen, ry);
+        g2.drawLine(rx, ry, rx, ry + cLen);
+        g2.drawLine(rx + rw, ry, rx + rw - cLen, ry);
+        g2.drawLine(rx + rw, ry, rx + rw, ry + cLen);
+        g2.drawLine(rx, ry + rh, rx + cLen, ry + rh);
+        g2.drawLine(rx, ry + rh, rx, ry + rh - cLen);
+        g2.drawLine(rx + rw, ry + rh, rx + rw - cLen, ry + rh);
+        g2.drawLine(rx + rw, ry + rh, rx + rw, ry + rh - cLen);
 
-            lblBillingPreview.setText(String.format("%s (%d Jam)%s",
-                    rupiahFormat.format(subtotal), durasi,
-                    (t.getKendaraan().isMobilListrik() ? " [Diskon EV 20%]" : (isMotor ? " [Motor]" : ""))));
+        g2.setColor(new Color(hudColor.getRed(), hudColor.getGreen(), hudColor.getBlue(), 25));
+        g2.fillRect(rx, ry, rw, rh);
 
-            txtUangBayar.setText(String.valueOf((long) subtotal));
-        } catch (Exception ignored) {
-            lblBillingPreview.setText("-");
-        }
+        // Header HUD
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        g2.setColor(Color.WHITE);
+        g2.drawString("🔴 LIVE FEED • GERBANG MASUK", 12, 22);
+
+        // Bottom HUD Status Badge
+        g2.setColor(new Color(15, 23, 42, 210));
+        g2.fillRoundRect(rx, ry + rh - 24, rw, 22, 6, 6);
+        g2.setColor(hudColor);
+        g2.drawString(hudStatus != null ? hudStatus : "MENUNGGU KENDARAAN...", rx + 10, ry + rh - 9);
+
+        g2.dispose();
+        lbl.setIcon(new ImageIcon(combined));
+        lbl.setText(null);
     }
 
     private void handleCheckIn() {
         try {
             String plat = txtPlat.getText().trim();
-            String tipe = (String) cbTipeKendaraan.getSelectedItem();
             String merk = txtMerk.getText().trim();
+            String tipe = (String) cbTipe.getSelectedItem();
             int jam = Integer.parseInt(txtJamMasuk.getText().trim());
-
-            if (plat.isEmpty() || merk.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Plat nomor dan merk kendaraan tidak boleh kosong.", "Validasi Input", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            Kendaraan k = new Kendaraan(plat, tipe, merk);
-            KarcisParkir tiket = gedung.prosesMasuk(k, jam);
-
+            if (plat.isEmpty() || merk.isEmpty()) { warn("Plat dan merk tidak boleh kosong."); return; }
+            KarcisParkir tiket = gedung.prosesMasuk(new Kendaraan(plat, tipe, merk), jam);
             if (tiket != null) {
-                triggerGateAction(true, "PORTAL TERBUKA (MASUK)");
-                selectedSlot = tiket.getSlot();
+                animGate(true, "TERBUKA MASUK");
+                selectedSlot  = tiket.getSlot();
                 selectedTiket = tiket;
-
-                renderBlueprintRows();
-                updateStats();
-                updateLogTable();
-                onSlotSelected(tiket.getSlot());
-
+                syncAll();
+                onSlotClick(tiket.getSlot());
                 JOptionPane.showMessageDialog(this,
-                        String.format("Kendaraan %s berhasil masuk.\nNo. Tiket: %s\nAlokasi: Slot %s (Lantai %d)",
-                                plat, tiket.getNomorTiket(), tiket.getSlot().getIdSlot(), tiket.getSlot().getLantai()),
-                        "Check-In Sukses", JOptionPane.INFORMATION_MESSAGE);
+                    "Check-In berhasil!\nTiket: " + tiket.getNomorTiket()
+                    + "\nKendaraan: " + plat + " (" + merk + ")"
+                    + "\nSlot: " + tiket.getSlot().getIdSlot(),
+                    "Sukses Masuk", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                JOptionPane.showMessageDialog(this,
-                        "Kapasitas parkir untuk kategori " + tipe + " sudah penuh.",
-                        "Parkir Penuh", JOptionPane.WARNING_MESSAGE);
+                warn("Kapasitas untuk " + tipe + " sudah penuh.");
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Input tidak valid: " + ex.getMessage(), "Error Input", JOptionPane.ERROR_MESSAGE);
+            warn("Input tidak valid: " + ex.getMessage());
         }
     }
 
     private void handleCheckOut() {
         try {
-            String noTiket = txtCariTiket.getText().trim();
-            int jamKeluar = Integer.parseInt(txtJamKeluar.getText().trim());
-            String metode = (String) cbMetodeBayar.getSelectedItem();
-            double uang = Double.parseDouble(txtUangBayar.getText().trim());
+            String noTiket = txtTiket.getText().trim();
+            int jamKeluar  = Integer.parseInt(txtJamKeluar.getText().trim());
+            String metode  = (String) cbMetode.getSelectedItem();
+            double uang    = Double.parseDouble(txtUangBayar.getText().trim());
 
-            KarcisParkir tiketDitemukan = null;
-            for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
-                if (t.getNomorTiket().equalsIgnoreCase(noTiket)) {
-                    tiketDitemukan = t;
-                    break;
-                }
-            }
+            KarcisParkir found = null;
+            for (KarcisParkir t : gedung.getRiwayatTransaksi())
+                if (t.getNomorTiket().equalsIgnoreCase(noTiket)) { found = t; break; }
 
-            if (tiketDitemukan == null) {
-                JOptionPane.showMessageDialog(this, "Tiket " + noTiket + " tidak ditemukan. Silakan klik mobil di denah.", "Peringatan", JOptionPane.WARNING_MESSAGE);
-                return;
-            }
+            if (found == null) { warn("Tiket tidak ditemukan."); return; }
+            if (found.isSudahDibayar()) { warn("Tiket ini sudah lunas."); return; }
 
-            if (tiketDitemukan.isSudahDibayar()) {
-                JOptionPane.showMessageDialog(this, "Tiket ini sudah pernah dibayar dan kendaraan telah keluar.", "Informasi", JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            boolean sukses = gedung.prosesKeluar(tiketDitemukan, jamKeluar, metode, uang);
-            if (sukses) {
-                triggerGateAction(true, "PORTAL TERBUKA (KELUAR)");
-
-                this.selectedSlot = null;
-                this.selectedTiket = null;
-                lblCheckoutNotice.setText("<html><span style='color:#059669;font-weight:600;'>Check-out berhasil. Slot telah kosong kembali.</span></html>");
-                lblBillingPreview.setText("Rp 0");
-
-                renderBlueprintRows();
-                updateStats();
-                updateLogTable();
-
+            boolean ok = gedung.prosesKeluar(found, jamKeluar, metode, uang);
+            if (ok) {
+                animGate(true, "TERBUKA KELUAR");
+                selectedSlot  = null;
+                selectedTiket = null;
+                lblNotice.setText("<html><span style='color:#34d399;'>Check-out berhasil. Slot kosong kembali.</span></html>");
+                lblTagihan.setText("Rp 0");
+                syncAll();
                 JOptionPane.showMessageDialog(this,
-                        String.format("Pembayaran LUNAS.\nKendaraan: %s\nTotal Biaya: %s\nKembalian: %s\nPortal keluar telah dibuka.",
-                                tiketDitemukan.getKendaraan().getPlatNomor(),
-                                rupiahFormat.format(tiketDitemukan.getTotalBiaya()),
-                                rupiahFormat.format(uang - tiketDitemukan.getTotalBiaya())),
-                        "Check-Out Sukses", JOptionPane.INFORMATION_MESSAGE);
+                    "Pembayaran LUNAS\nKendaraan: " + found.getKendaraan().getPlatNomor()
+                    + "\nBiaya: " + rupiah.format(found.getTotalBiaya())
+                    + "\nKembalian: " + rupiah.format(uang - found.getTotalBiaya()),
+                    "Check-Out Sukses", JOptionPane.INFORMATION_MESSAGE);
             } else {
-                JOptionPane.showMessageDialog(this, "Pembayaran ditolak. Nominal bayar kurang dari total tagihan.", "Gagal Bayar", JOptionPane.ERROR_MESSAGE);
+                warn("Pembayaran kurang dari tagihan.");
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Input tidak valid: " + ex.getMessage(), "Error Input", JOptionPane.ERROR_MESSAGE);
+            warn("Input tidak valid: " + ex.getMessage());
         }
     }
 
-    private void updateStats() {
-        int total = gedung.getDaftarSlot().size();
-        int terisi = 0;
-        for (SlotParkir s : gedung.getDaftarSlot()) {
-            if (s.isTerisi()) terisi++;
-        }
+    private void updateTagihan() {
+        try {
+            String no = txtTiket.getText().trim();
+            KarcisParkir t = null;
+            for (KarcisParkir item : gedung.getRiwayatTransaksi())
+                if (item.getNomorTiket().equalsIgnoreCase(no) && !item.isSudahDibayar()) { t = item; break; }
+            if (t == null) { lblTagihan.setText("-"); return; }
+
+            int durasi = t.hitungDurasi(Integer.parseInt(txtJamKeluar.getText().trim()));
+            boolean motor = "MOTOR".equals(t.getKendaraan().getTipe());
+            double p1 = motor ? gedung.getTarifJamPertamaMotor() : gedung.getTarifJamPertamaMobil();
+            double pN = motor ? gedung.getTarifPerJamMotor()     : gedung.getTarifPerJamMobil();
+            double total = p1 + (durasi > 1 ? (durasi - 1) * pN : 0);
+            if (t.getKendaraan().isMobilListrik()) total *= 0.80;
+
+            lblTagihan.setText(rupiah.format(total) + " (" + durasi + " jam)"
+                + (t.getKendaraan().isMobilListrik() ? " [EV-20%]" : ""));
+            txtUangBayar.setText(String.valueOf((long) total));
+        } catch (Exception ignored) {}
+    }
+
+    private void updateAlokasiHint() {
+        String t = (String) cbTipe.getSelectedItem();
+        if ("MOTOR".equals(t))             { lblAlokasiHint.setText("Baris A (Zona Motor)");  lblAlokasiHint.setForeground(TEAL); }
+        else if ("MOBIL_LISTRIK".equals(t)){ lblAlokasiHint.setText("EV1 / EV2 (Prioritas)"); lblAlokasiHint.setForeground(PURPLE); }
+        else                               { lblAlokasiHint.setText("Baris B, C, atau D");    lblAlokasiHint.setForeground(BLUE); }
+    }
+
+    private void syncAll() {
+        int total = gedung.getDaftarSlot().size(), terisi = 0;
+        for (SlotParkir s : gedung.getDaftarSlot()) if (s.isTerisi()) terisi++;
         int tersedia = total - terisi;
 
-        lblTotalSlot.setText(String.format("<html><div style='text-align:right;'><span style='color:#64748b;font-size:8.5px;font-weight:600;'>TOTAL SLOT</span><br/><b style='font-size:13px;color:%s;'>%d</b></div></html>", toHex(TEXT_PRIMARY), total));
-        lblTersedia.setText(String.format("<html><div style='text-align:right;'><span style='color:#64748b;font-size:8.5px;font-weight:600;'>TERSEDIA</span><br/><b style='font-size:13px;color:%s;'>%d</b></div></html>", toHex(STATUS_SUCCESS), tersedia));
-        lblTerisi.setText(String.format("<html><div style='text-align:right;'><span style='color:#64748b;font-size:8.5px;font-weight:600;'>TERISI</span><br/><b style='font-size:13px;color:%s;'>%d</b></div></html>", toHex(STATUS_DANGER), terisi));
-        lblPendapatan.setText(String.format("<html><div style='text-align:right;'><span style='color:#64748b;font-size:8.5px;font-weight:600;'>KAS MASUK</span><br/><b style='font-size:13px;color:%s;'>%s</b></div></html>", toHex(new Color(180, 83, 9)), rupiahFormat.format(gedung.getTotalPendapatan())));
-    }
+        lblTersedia.setText(fmtPill("TERSEDIA", String.valueOf(tersedia), GREEN));
+        lblTerisi.setText(fmtPill("TERISI", String.valueOf(terisi), RED));
+        lblPendapatan.setText(fmtPill("KAS MASUK", rupiah.format(gedung.getTotalPendapatan()), AMBER));
 
-    private void updateLogTable() {
-        logTableModel.setRowCount(0);
+        logModel.setRowCount(0);
         for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
-            String jamKet = t.isSudahDibayar() ? (t.getJamMasuk() + ":00 - " + t.getJamKeluar() + ":00") : (t.getJamMasuk() + ":00 - ...");
+            String waktu  = t.getJamMasuk() + ":00 - " + (t.isSudahDibayar() ? t.getJamKeluar() + ":00" : "...");
             String status = t.isSudahDibayar() ? "LUNAS (" + t.getMetodePembayaran() + ")" : "PARKIR";
-            String biaya = t.isSudahDibayar() ? rupiahFormat.format(t.getTotalBiaya()) : "-";
-
-            logTableModel.addRow(new Object[]{
-                    t.getNomorTiket(),
-                    t.getKendaraan().getPlatNomor(),
-                    t.getKendaraan().getTipe(),
-                    t.getSlot().getIdSlot(),
-                    jamKet,
-                    status,
-                    biaya
+            String biaya  = t.isSudahDibayar() ? rupiah.format(t.getTotalBiaya()) : "-";
+            logModel.addRow(new Object[]{
+                t.getNomorTiket(), t.getKendaraan().getPlatNomor(),
+                t.getKendaraan().getTipe(), t.getSlot().getIdSlot(),
+                waktu, status, biaya
             });
         }
+
+        renderBlueprint();
     }
 
-    private void triggerGateAction(boolean open, String text) {
-        targetGateAngle = open ? 70.0f : 0.0f;
-        gateStatusText = text;
-        gateStatusColor = open ? STATUS_SUCCESS : STATUS_DANGER;
-
-        // Jalankan transisi halus lengan portal hanya saat ada aksi (bukan endless loop!)
-        if (gateAnimationTimer != null && gateAnimationTimer.isRunning()) {
-            gateAnimationTimer.stop();
-        }
-
-        gateAnimationTimer = new Timer(20, e -> {
-            if (Math.abs(gateAngle - targetGateAngle) > 1.0f) {
-                gateAngle += (targetGateAngle - gateAngle) * 0.2f;
+    private void animGate(boolean open, String label) {
+        targetGate = open ? 70f : 0f;
+        gateLabel  = label;
+        gateColor  = open ? GREEN : RED;
+        if (gateTimer != null && gateTimer.isRunning()) gateTimer.stop();
+        gateTimer = new Timer(20, e -> {
+            if (Math.abs(gateAngle - targetGate) > 1f) {
+                gateAngle += (targetGate - gateAngle) * 0.2f;
                 repaint();
             } else {
-                gateAngle = targetGateAngle;
-                repaint();
+                gateAngle = targetGate; repaint();
                 ((Timer) e.getSource()).stop();
             }
         });
-        gateAnimationTimer.start();
-
+        gateTimer.start();
         if (open) {
-            Timer closeTimer = new Timer(3000, new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    targetGateAngle = 0.0f;
-                    gateStatusText = "PORTAL TERTUTUP";
-                    gateStatusColor = STATUS_DANGER;
-                    if (gateAnimationTimer != null) gateAnimationTimer.start();
-                    ((Timer) e.getSource()).stop();
-                }
+            Timer close = new Timer(3000, e -> {
+                targetGate = 0f; gateLabel = "TERTUTUP"; gateColor = RED;
+                if (gateTimer != null) gateTimer.start();
+                ((Timer) e.getSource()).stop();
             });
-            closeTimer.setRepeats(false);
-            closeTimer.start();
+            close.setRepeats(false); close.start();
         }
     }
 
-    private JLabel createFieldLabel(String text) {
+    private SlotParkir findSlot(String id) {
+        for (SlotParkir s : gedung.getDaftarSlot())
+            if (s.getIdSlot().equalsIgnoreCase(id)) return s;
+        return null;
+    }
+
+    private JLabel sectionTitle(String text) {
         JLabel l = new JLabel(text);
-        l.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        l.setForeground(TEXT_SECONDARY);
+        l.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        l.setForeground(T1);
+        l.setBorder(new EmptyBorder(0, 0, 4, 0));
         return l;
     }
 
-    private JTextField createStyledTextField(String initVal) {
-        JTextField tf = new JTextField(initVal);
-        tf.setBackground(BG_PAGE);
-        tf.setForeground(TEXT_PRIMARY);
-        tf.setCaretColor(BRAND_BLUE);
+    private JLabel fieldLabel(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        l.setForeground(T2);
+        return l;
+    }
+
+    private JTextField field(String init) {
+        JTextField tf = new JTextField(init);
+        tf.setBackground(FIELD_BG);
+        tf.setForeground(T1);
+        tf.setCaretColor(T1);
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         tf.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_SUBTLE, 1),
-                new EmptyBorder(3, 6, 3, 6)
-        ));
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(4, 7, 4, 7)));
         return tf;
     }
 
-    private void styleComboBox(JComboBox<String> cb) {
-        cb.setBackground(BG_PAGE);
-        cb.setForeground(TEXT_PRIMARY);
+    private void styleCombo(JComboBox<String> cb) {
+        cb.setBackground(FIELD_BG);
+        cb.setForeground(T1);
         cb.setFont(new Font("Segoe UI", Font.PLAIN, 11));
     }
 
-    private JButton createStyledButton(String text, Color bg, Color textCol) {
+    private JButton button(String text, Color bg, Color fg) {
         JButton btn = new JButton(text);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
         btn.setBackground(bg);
-        btn.setForeground(textCol);
+        btn.setForeground(fg);
         btn.setFocusPainted(false);
-        btn.setBorder(new EmptyBorder(7, 12, 7, 12));
+        btn.setBorder(new EmptyBorder(8, 14, 8, 14));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Color orig = bg;
+        btn.addMouseListener(new MouseAdapter() {
+            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(bg.darker()); }
+            @Override public void mouseExited(MouseEvent e)  { btn.setBackground(orig); }
+        });
         return btn;
     }
 
-    private JPanel createLegendChip(String label, Color col) {
-        JPanel p = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-        p.setOpaque(false);
-        JPanel chip = new JPanel();
-        chip.setPreferredSize(new Dimension(8, 8));
-        chip.setBackground(col);
-        chip.setBorder(BorderFactory.createLineBorder(col.darker(), 1));
-
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lbl.setForeground(TEXT_MUTED);
-
-        p.add(chip);
-        p.add(lbl);
-        return p;
+    private void warn(String msg) {
+        JOptionPane.showMessageDialog(this, msg, "Peringatan", JOptionPane.WARNING_MESSAGE);
     }
 
-    private String toHex(Color c) {
+    private String hex(Color c) {
         return String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     }
 
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            UIManager.put("TabbedPane.background", CARD_BG);
+            UIManager.put("TabbedPane.foreground", T1);
+            UIManager.put("TabbedPane.selected", FIELD_BG);
+            UIManager.put("TabbedPane.contentAreaColor", CARD_BG);
+            UIManager.put("TabbedPane.borderHighlightColor", BORDER);
+            UIManager.put("TabbedPane.darkShadow", BORDER);
+            UIManager.put("TabbedPane.light", CARD_BG);
+            UIManager.put("TabbedPane.focus", CARD_BG);
+            UIManager.put("Panel.background", BG);
+            UIManager.put("OptionPane.background", CARD_BG);
+            UIManager.put("OptionPane.messageForeground", T1);
         } catch (Exception ignored) {}
-
-        SwingUtilities.invokeLater(() -> {
-            AdminGUI app = new AdminGUI();
-            app.setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new AdminGUI().setVisible(true));
     }
 }
