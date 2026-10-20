@@ -74,9 +74,31 @@ public class GedungParkir {
         return kandidat;
     }
 
+    public SlotParkir cariSlotDenganPlat(String plat) {
+        if (plat == null || plat.trim().isEmpty()) return null;
+        String p = plat.replaceAll("\\s+", "").toUpperCase();
+        for (SlotParkir s : daftarSlot) {
+            if (s.isTerisi() && s.getKendaraanParkir() != null) {
+                String platParkir = s.getKendaraanParkir().getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+                if (platParkir.equals(p)) {
+                    return s;
+                }
+            }
+        }
+        return null;
+    }
+
     public KarcisParkir prosesMasuk(Kendaraan k, int jamMasuk) {
         if (k == null) {
             System.out.println("[CHECK-IN GAGAL] Data kendaraan tidak valid.");
+            return null;
+        }
+
+        // Cegah duplikasi: Cek apakah kendaraan dengan plat yang sama sudah ada di dalam gedung
+        SlotParkir slotSudahAda = cariSlotDenganPlat(k.getPlatNomor());
+        if (slotSudahAda != null) {
+            System.out.printf("[CHECK-IN DITOLAK] Kendaraan plat %s sudah terparkir di slot %s!%n",
+                k.getPlatNomor(), slotSudahAda.getIdSlot());
             return null;
         }
 
