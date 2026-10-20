@@ -71,26 +71,49 @@ public class AdminGUI extends JFrame {
     private Timer gateTimer;
 
     // AI Camera state
-    private String savedEndpoint = "http://localhost:11434/api/chat";
+    private String savedEndpoint = "https://pi.leopard-gila.ts.net/v1/chat/completions";
     private String savedApiKey   = "";
-    private String savedModel    = "llama3.2-vision";
+    private String savedModel    = "orion";
+
+    // CCTV Dashboard State
+    private LiveCameraStreamer cctvStreamer;
+    private JLabel cctvScreen;
+    private JLabel lblCCTVStatus;
+    private JLabel lblCCTVLiveBadge;
+    private JButton btnCCTVToggle;
+    private BufferedImage currentCCTVFrame;
+    private boolean cctvVehicleDetected = false;
+    private String cctvHudText = "MEMANTAU GERBANG MASUK...";
+    private long cctvCooldownUntil = 0;
+    private String lastProcessedPlate = "";
+    private long lastProcessedTime = 0;
 
     public AdminGUI() {
-        super("SmartParkir — Admin Dashboard & AI Vision Gerbang");
+        super("SmartParkir — CCTV Live Monitoring & AI Auto-Gate");
         rupiah = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
         
         // Load AI Credentials from ai_config.properties
         java.util.Properties aiProps = AIVisionService.loadConfig();
-        savedEndpoint = aiProps.getProperty("ai.endpoint", "http://localhost:11434/api/chat");
+        savedEndpoint = aiProps.getProperty("ai.endpoint", "https://pi.leopard-gila.ts.net/v1/chat/completions");
         savedApiKey   = aiProps.getProperty("ai.api_key", "");
-        savedModel    = aiProps.getProperty("ai.model", "llama3.2-vision");
+        savedModel    = aiProps.getProperty("ai.model", "orion");
 
         initData();
         buildUI();
         setDefaultCloseOperation(EXIT_ON_CLOSE);
-        setSize(1380, 840);
-        setMinimumSize(new Dimension(1200, 700));
+        setSize(1440, 880);
+        setMinimumSize(new Dimension(1220, 740));
         setLocationRelativeTo(null);
+
+        // Hentikan streaming kamera saat window ditutup
+        addWindowListener(new WindowAdapter() {
+            @Override public void windowClosing(WindowEvent e) {
+                if (cctvStreamer != null) cctvStreamer.stopStream();
+            }
+        });
+
+        // AUTO-START CCTV DAN AUTO-DETEKSI OTOMATIS SAAT PROGRAM DIJALANKAN
+        SwingUtilities.invokeLater(() -> startDashboardCCTV());
     }
 
     private void initData() {
@@ -153,7 +176,7 @@ public class AdminGUI extends JFrame {
 
         JLabel name = new JLabel(String.format(
             "<html><b style='font-size:14px;color:%s;'>SmartParkir</b>"
-            + "<br/><span style='color:%s;font-size:10px;'>Grand PENS Plaza &middot; 45 Slot &middot; AI Gate</span></html>",
+            + "<br/><span style='color:%s;font-size:10px;'>Grand PENS Plaza &middot; 45 Slot &middot; CCTV Live Auto-Detect</span></html>",
             hex(T1), hex(T2)));
         name.setForeground(T1);
         brand.add(icon);
@@ -162,7 +185,7 @@ public class AdminGUI extends JFrame {
         JPanel pills = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
         pills.setOpaque(false);
 
-        JButton btnCameraHeader = button("📷 AI Kamera Gerbang", PURPLE, WHITE);
+        JButton btnCameraHeader = button("⚙️ Pengaturan AI", PURPLE, WHITE);
         btnCameraHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
         btnCameraHeader.setBorder(new EmptyBorder(6, 12, 6, 12));
         btnCameraHeader.addActionListener(e -> openCameraScannerDialog());
@@ -209,9 +232,9 @@ public class AdminGUI extends JFrame {
         top.setOpaque(false);
 
         JLabel title = new JLabel(String.format(
-            "<html><b style='color:%s;'>Denah Parkir Realtime</b>"
+            "<html><b style='color:%s;'>Denah Parkir Realtime (45 Slot)</b>"
             + " <span style='color:%s;font-weight:normal;font-size:10px;'>"
-            + "- Klik kendaraan terparkir untuk Check-Out</span></html>",
+            + "- Klik kendaraan di denah untuk Check-Out</span></html>",
             hex(T1), hex(T2)));
         title.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         title.setForeground(T1);
@@ -254,16 +277,45 @@ public class AdminGUI extends JFrame {
         scroll.getVerticalScrollBar().setUnitIncrement(14);
         card.add(scroll, BorderLayout.CENTER);
 
-        JPanel leg = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 4));
+        JPanel southBox = new JPanel(new BorderLayout(0, 4));
+        southBox.setOpaque(false);
+
+        JPanel leg = new JPanel(new FlowLayout(FlowLayout.CENTER, 14, 2));
         leg.setOpaque(false);
         leg.add(legend("Tersedia",    GREEN));
         leg.add(legend("Terisi",      RED));
         leg.add(legend("EV Charger",  PURPLE));
         leg.add(legend("Zona Motor",  TEAL));
         leg.add(legend("Zona Mobil",  BLUE));
-        card.add(leg, BorderLayout.SOUTH);
+        southBox.add(leg, BorderLayout.NORTH);
+
+        southBox.add(buildTariffBar(), BorderLayout.SOUTH);
+        card.add(southBox, BorderLayout.SOUTH);
 
         return card;
+    }
+
+    private JPanel buildTariffBar() {
+        JPanel bar = new JPanel(new GridLayout(1, 3, 8, 0));
+        bar.setOpaque(false);
+        bar.setBorder(new EmptyBorder(4, 0, 0, 0));
+        bar.add(tariffBadge("Motor", "Rp 2.000", "+ Rp 1.000/jam", TEAL, TEAL_LT));
+        bar.add(tariffBadge("Mobil", "Rp 5.000", "+ Rp 3.000/jam", BLUE, BLUE_LT));
+        bar.add(tariffBadge("EV", "Diskon 20%", "Harga Spesial", PURPLE, PURPLE_LT));
+        return bar;
+    }
+
+    private JPanel tariffBadge(String name, String rate, String sub, Color accent, Color bg) {
+        JPanel p = new JPanel(new FlowLayout(FlowLayout.CENTER, 6, 2));
+        p.setBackground(bg);
+        p.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(2, 6, 2, 6)));
+        JLabel n = new JLabel(name); n.setFont(new Font("Segoe UI", Font.BOLD, 10)); n.setForeground(accent);
+        JLabel r = new JLabel(rate); r.setFont(new Font("Segoe UI", Font.BOLD, 10)); r.setForeground(T1);
+        JLabel s = new JLabel(sub);  s.setFont(new Font("Segoe UI", Font.PLAIN, 9)); s.setForeground(T2);
+        p.add(n); p.add(r); p.add(s);
+        return p;
     }
 
     private void renderBlueprint() {
@@ -477,46 +529,311 @@ public class AdminGUI extends JFrame {
     private JPanel buildSidebar() {
         JPanel side = new JPanel();
         side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
-        side.setPreferredSize(new Dimension(440, 800));
+        side.setPreferredSize(new Dimension(460, 820));
         side.setOpaque(false);
-        side.add(buildTariffCard());
-        side.add(Box.createVerticalStrut(10));
+        
+        // 1. CCTV CARD DI DASHBOARD UNTUK PEMANTAUAN LANGSUNG
+        side.add(buildCCTVCard());
+        side.add(Box.createVerticalStrut(8));
+
+        // 2. FORM KASIR / OPERASI
         side.add(buildOperationCard());
-        side.add(Box.createVerticalStrut(10));
+        side.add(Box.createVerticalStrut(8));
+
+        // 3. LOG TRANSAKSI
         side.add(buildLogCard());
         return side;
     }
 
-    private JPanel buildTariffCard() {
+    /**
+     * Card CCTV Kamera Live tersemat langsung di dashboard untuk pemantauan realtime
+     */
+    private JPanel buildCCTVCard() {
         JPanel card = new JPanel(new BorderLayout(0, 6));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(10, 12, 10, 12)));
+            new EmptyBorder(8, 10, 8, 10)));
 
-        JLabel title = sectionTitle("Tarif Parkir");
-        card.add(title, BorderLayout.NORTH);
+        JPanel top = new JPanel(new BorderLayout());
+        top.setOpaque(false);
+        JLabel title = sectionTitle("CCTV Pemantauan Gerbang Masuk (Live AI)");
+        lblCCTVLiveBadge = new JLabel("🔴 STREAMING AKTIF");
+        lblCCTVLiveBadge.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        lblCCTVLiveBadge.setForeground(GREEN);
+        top.add(title, BorderLayout.WEST);
+        top.add(lblCCTVLiveBadge, BorderLayout.EAST);
+        card.add(top, BorderLayout.NORTH);
 
-        JPanel grid = new JPanel(new GridLayout(1, 3, 8, 0));
-        grid.setOpaque(false);
-        grid.add(tariffItem("Motor",  "Rp 2.000", "+ Rp 1.000/jam", TEAL,   TEAL_LT));
-        grid.add(tariffItem("Mobil",  "Rp 5.000", "+ Rp 3.000/jam", BLUE,   BLUE_LT));
-        grid.add(tariffItem("EV",     "Diskon 20%","Harga Spesial",  PURPLE, PURPLE_LT));
-        card.add(grid, BorderLayout.CENTER);
+        cctvScreen = new JLabel("", SwingConstants.CENTER);
+        cctvScreen.setPreferredSize(new Dimension(438, 205));
+        cctvScreen.setOpaque(true);
+        cctvScreen.setBackground(Color.BLACK);
+        cctvScreen.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        card.add(cctvScreen, BorderLayout.CENTER);
+
+        JPanel bot = new JPanel(new BorderLayout(0, 4));
+        bot.setOpaque(false);
+
+        lblCCTVStatus = new JLabel("<html><span style='color:#38bdf8;font-size:10px;'>🟢 Sensor aktif: Menunggu kendaraan di gerbang masuk...</span></html>");
+        bot.add(lblCCTVStatus, BorderLayout.NORTH);
+
+        JPanel actions = new JPanel(new GridLayout(1, 3, 6, 0));
+        actions.setOpaque(false);
+
+        JButton btnSimulate = button("🚗 Datangkan Xenia", BLUE, WHITE);
+        btnSimulate.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnSimulate.setBorder(new EmptyBorder(5, 6, 5, 6));
+        btnSimulate.addActionListener(e -> simulateCarArrival());
+
+        btnCCTVToggle = button("⏹ Jeda Video", CARD_BG, T1);
+        btnCCTVToggle.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnCCTVToggle.setBorder(new EmptyBorder(5, 6, 5, 6));
+        btnCCTVToggle.addActionListener(e -> toggleCCTVStreaming());
+
+        JButton btnSettings = button("⚙️ Setting AI", CARD_BG, T1);
+        btnSettings.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnSettings.setBorder(new EmptyBorder(5, 6, 5, 6));
+        btnSettings.addActionListener(e -> openCameraScannerDialog());
+
+        actions.add(btnSimulate);
+        actions.add(btnCCTVToggle);
+        actions.add(btnSettings);
+        bot.add(actions, BorderLayout.SOUTH);
+
+        card.add(bot, BorderLayout.SOUTH);
         return card;
     }
 
-    private JPanel tariffItem(String name, String rate, String sub, Color accent, Color bg) {
-        JPanel p = new JPanel(new GridLayout(3, 1, 0, 2));
-        p.setBackground(bg);
-        p.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(6, 8, 6, 8)));
-        JLabel n = new JLabel(name); n.setFont(new Font("Segoe UI", Font.BOLD, 10)); n.setForeground(accent);
-        JLabel r = new JLabel(rate); r.setFont(new Font("Segoe UI", Font.BOLD, 12)); r.setForeground(T1);
-        JLabel s = new JLabel(sub);  s.setFont(new Font("Segoe UI", Font.PLAIN, 9)); s.setForeground(T2);
-        p.add(n); p.add(r); p.add(s);
-        return p;
+    private void startDashboardCCTV() {
+        if (cctvStreamer != null && cctvStreamer.isStreaming()) return;
+
+        cctvStreamer = new LiveCameraStreamer(new LiveCameraStreamer.StreamListener() {
+            @Override
+            public void onNewFrame(BufferedImage frame) {
+                currentCCTVFrame = frame;
+                SwingUtilities.invokeLater(() -> {
+                    drawCCTVScreen(frame, cctvVehicleDetected, cctvHudText);
+                });
+            }
+
+            @Override
+            public void onVehicleDetected(BufferedImage frame) {
+                handleAutoVehicleDetected(frame);
+            }
+
+            @Override
+            public void onStatusChange(String status, boolean isError) {
+                SwingUtilities.invokeLater(() -> {
+                    lblCCTVStatus.setText("<html><span style='color:" + (isError ? "#ef4444" : "#38bdf8") + ";font-size:10px;'>" + status + "</span></html>");
+                });
+            }
+        });
+
+        cctvStreamer.startLiveCamera();
+    }
+
+    private void handleAutoVehicleDetected(BufferedImage frame) {
+        long now = System.currentTimeMillis();
+        if (now < cctvCooldownUntil) return; // Dalam jeda/cooldown anti-duplikasi
+
+        cctvCooldownUntil = now + 9000; // Pasang cooldown 9 detik agar kamera berhenti memindai sementara
+        cctvVehicleDetected = true;
+        cctvHudText = "MOBIL TERDETEKSI! MENGIRIM KE AI ORION...";
+
+        SwingUtilities.invokeLater(() -> {
+            lblCCTVStatus.setText("<html><span style='color:#a855f7;font-size:10px;'>🚗 Mobil terdeteksi! Memverifikasi plat ke AI Orion...</span></html>");
+            drawCCTVScreen(frame, true, cctvHudText);
+        });
+
+        // Jalankan klasifikasi AI di thread latar belakang
+        new Thread(() -> {
+            try {
+                DetectionResult res = AIVisionService.analyzeVehicleImage(frame, savedEndpoint, savedApiKey, savedModel);
+                SwingUtilities.invokeLater(() -> {
+                    processAIDetectionResult(res);
+                });
+            } catch (Exception ex) {
+                SwingUtilities.invokeLater(() -> {
+                    cctvVehicleDetected = false;
+                    cctvHudText = "ERROR AI: " + ex.getMessage();
+                    lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Error AI: " + ex.getMessage() + "</span></html>");
+                });
+            }
+        }).start();
+    }
+
+    private void processAIDetectionResult(DetectionResult res) {
+        String plat = res.plat.trim();
+        String merk = res.merk.trim();
+        String tipe = res.tipe.trim();
+
+        // 1. CEK DUPLIKASI KE GEDUNG PARKIR (Apakah mobil sedang parkir di dalam?)
+        SlotParkir sudahParkir = gedung.cariSlotDenganPlat(plat);
+        if (sudahParkir != null) {
+            cctvVehicleDetected = false;
+            cctvHudText = "DUPLIKAT DIABAIKAN: " + plat + " DI " + sudahParkir.getIdSlot();
+            lblCCTVStatus.setText("<html><span style='color:#f59e0b;font-size:10px;'>⚠️ <b>" + plat + "</b> SUDAH ADA di Slot " + sudahParkir.getIdSlot() + ". Input ganda dicegah!</span></html>");
+            lblNotice.setText("<html><span style='color:#f59e0b;'>⚠️ Mobil plat <b>" + plat + "</b> sudah terparkir di slot <b>" + sudahParkir.getIdSlot() + "</b>. Sistem menolak duplikasi.</span></html>");
+            startCCTVCooldownCountdown(6);
+            return;
+        }
+
+        // 2. CEK RECENT PLAT COOLDOWN (Mencegah input berulang dalam hitungan detik)
+        long now = System.currentTimeMillis();
+        if (plat.equalsIgnoreCase(lastProcessedPlate) && (now - lastProcessedTime < 20000)) {
+            cctvVehicleDetected = false;
+            cctvHudText = "DUPLIKAT BARU DIABAIKAN: " + plat;
+            startCCTVCooldownCountdown(5);
+            return;
+        }
+
+        // 3. MASUKKAN KE DATA OTOMATIS (AUTO CHECK-IN)
+        int currentHour = java.time.LocalTime.now().getHour();
+        KarcisParkir tiket = gedung.prosesMasuk(new Kendaraan(plat, tipe, merk), currentHour);
+
+        if (tiket != null) {
+            lastProcessedPlate = plat;
+            lastProcessedTime = now;
+            selectedSlot = tiket.getSlot();
+            selectedTiket = tiket;
+
+            // Buka portal gerbang dengan animasi
+            animGate(true, "TERBUKA MASUK");
+
+            cctvVehicleDetected = false;
+            cctvHudText = "MASUK SUKSES: " + plat + " -> " + tiket.getSlot().getIdSlot();
+            lblCCTVStatus.setText("<html><span style='color:#22c55e;font-size:10px;'>✅ <b>" + plat + "</b> (" + merk + ") Masuk -> Slot <b>" + tiket.getSlot().getIdSlot() + "</b> (Gate Terbuka)</span></html>");
+            lblNotice.setText("<html><span style='color:#22c55e;'>✅ Mobil <b>" + plat + "</b> otomatis ter-check-in ke Slot <b>" + tiket.getSlot().getIdSlot() + "</b>. Tiket: <b>" + tiket.getNomorTiket() + "</b></span></html>");
+
+            // Sinkronisasi denah, log table, pill statistik
+            syncAll();
+
+            // Isi form check-in juga untuk display
+            txtPlat.setText(plat);
+            txtMerk.setText(merk);
+            cbTipe.setSelectedItem(tipe);
+            updateAlokasiHint();
+
+            // Hentikan kamera beberapa saat (countdown visual 8 detik anti-duplikasi)
+            startCCTVCooldownCountdown(8);
+        } else {
+            cctvVehicleDetected = false;
+            cctvHudText = "PARKIR PENUH UNTUK " + tipe;
+            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Kapasitas slot untuk " + tipe + " sudah penuh!</span></html>");
+            startCCTVCooldownCountdown(5);
+        }
+    }
+
+    private void startCCTVCooldownCountdown(int seconds) {
+        cctvCooldownUntil = System.currentTimeMillis() + (seconds * 1000L);
+        Timer timer = new Timer(1000, null);
+        final int[] remaining = new int[]{seconds};
+        timer.addActionListener(e -> {
+            remaining[0]--;
+            if (remaining[0] > 0) {
+                lblCCTVLiveBadge.setText("⏸ JEDA SENSOR (" + remaining[0] + "s)");
+                lblCCTVLiveBadge.setForeground(AMBER);
+            } else {
+                timer.stop();
+                lblCCTVLiveBadge.setText("🔴 STREAMING AKTIF");
+                lblCCTVLiveBadge.setForeground(GREEN);
+                cctvHudText = "MEMANTAU GERBANG MASUK...";
+                lblCCTVStatus.setText("<html><span style='color:#38bdf8;font-size:10px;'>🟢 Sensor aktif: Menunggu kendaraan di gerbang masuk...</span></html>");
+            }
+        });
+        timer.start();
+    }
+
+    private void drawCCTVScreen(BufferedImage frame, boolean isDetected, String hudStatus) {
+        if (cctvScreen == null) return;
+        int targetW = cctvScreen.getWidth() > 0 ? cctvScreen.getWidth() : 438;
+        int targetH = cctvScreen.getHeight() > 0 ? cctvScreen.getHeight() : 205;
+
+        BufferedImage combined = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = combined.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+        if (frame != null) {
+            double scale = Math.max((double) targetW / frame.getWidth(), (double) targetH / frame.getHeight());
+            int sw = (int) (frame.getWidth() * scale);
+            int sh = (int) (frame.getHeight() * scale);
+            int ox = (targetW - sw) / 2;
+            int oy = (targetH - sh) / 2;
+            g2.drawImage(frame, ox, oy, sw, sh, null);
+        } else {
+            g2.setColor(Color.BLACK);
+            g2.fillRect(0, 0, targetW, targetH);
+        }
+
+        // Bounding Scanner Reticle
+        int rw = targetW - 140, rh = targetH - 60;
+        int rx = (targetW - rw) / 2;
+        int ry = (targetH - rh) / 2;
+
+        Color hudColor = isDetected ? new Color(34, 197, 94) : new Color(59, 130, 246);
+        g2.setColor(hudColor);
+        g2.setStroke(new BasicStroke(2f));
+
+        int cLen = 16;
+        g2.drawLine(rx, ry, rx + cLen, ry);
+        g2.drawLine(rx, ry, rx, ry + cLen);
+        g2.drawLine(rx + rw, ry, rx + rw - cLen, ry);
+        g2.drawLine(rx + rw, ry, rx + rw, ry + cLen);
+        g2.drawLine(rx, ry + rh, rx + cLen, ry + rh);
+        g2.drawLine(rx, ry + rh, rx, ry + rh - cLen);
+        g2.drawLine(rx + rw, ry + rh, rx + rw - cLen, ry + rh);
+        g2.drawLine(rx + rw, ry + rh, rx + rw, ry + rh - cLen);
+
+        g2.setColor(new Color(hudColor.getRed(), hudColor.getGreen(), hudColor.getBlue(), 20));
+        g2.fillRect(rx, ry, rw, rh);
+
+        // Header Text
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        g2.setColor(Color.WHITE);
+        g2.drawString("CAM-01 • GERBANG MASUK REALTIME", 10, 16);
+
+        // Status Badge at Bottom
+        g2.setColor(new Color(15, 23, 42, 210));
+        g2.fillRoundRect(rx, ry + rh - 20, rw, 18, 4, 4);
+        g2.setColor(hudColor);
+        g2.drawString(hudStatus != null ? hudStatus : "MEMANTAU GERBANG MASUK...", rx + 8, ry + rh - 7);
+
+        g2.dispose();
+        cctvScreen.setIcon(new ImageIcon(combined));
+        cctvScreen.setText(null);
+    }
+
+    private void simulateCarArrival() {
+        File s = new File("sample_car.jpg");
+        if (s.exists()) {
+            try {
+                BufferedImage carImg = ImageIO.read(s);
+                if (carImg != null) {
+                    currentCCTVFrame = carImg;
+                    handleAutoVehicleDetected(carImg);
+                }
+            } catch (Exception ex) {
+                warn("Gagal memuat sample_car.jpg: " + ex.getMessage());
+            }
+        } else {
+            warn("File sample_car.jpg tidak ditemukan.");
+        }
+    }
+
+    private void toggleCCTVStreaming() {
+        if (cctvStreamer != null && cctvStreamer.isStreaming()) {
+            cctvStreamer.stopStream();
+            btnCCTVToggle.setText("▶ Mulai Video");
+            lblCCTVLiveBadge.setText("⏹ VIDEO PAUSED");
+            lblCCTVLiveBadge.setForeground(T3);
+        } else {
+            startDashboardCCTV();
+            btnCCTVToggle.setText("⏹ Jeda Video");
+            lblCCTVLiveBadge.setText("🔴 STREAMING AKTIF");
+            lblCCTVLiveBadge.setForeground(GREEN);
+        }
     }
 
     private JPanel buildOperationCard() {
@@ -633,7 +950,7 @@ public class AdminGUI extends JFrame {
         JPanel botButtons = new JPanel(new GridLayout(1, 2, 8, 0));
         botButtons.setOpaque(false);
 
-        JButton btnScanCam = button("📷 Scan AI Kamera", PURPLE, WHITE);
+        JButton btnScanCam = button("📷 Scan AI Manual", PURPLE, WHITE);
         btnScanCam.addActionListener(e -> openCameraScannerDialog());
 
         JButton btnMasuk = button("Check-In & Terbitkan", BLUE, WHITE);
@@ -703,7 +1020,7 @@ public class AdminGUI extends JFrame {
         });
 
         JScrollPane sp = new JScrollPane(tbl);
-        sp.setPreferredSize(new Dimension(416, 160));
+        sp.setPreferredSize(new Dimension(438, 150));
         sp.setBorder(BorderFactory.createLineBorder(BORDER, 1));
         sp.getViewport().setBackground(FIELD_BG);
         sp.setBackground(CARD_BG);
@@ -711,403 +1028,69 @@ public class AdminGUI extends JFrame {
         return card;
     }
 
-    /**
-     * Membuka Dialog Live Video Kamera & AI Vision Scanner Gerbang
-     */
     private void openCameraScannerDialog() {
-        JDialog dlg = new JDialog(this, "Live Video Camera & AI Vision Scanner Gerbang", true);
+        JDialog dlg = new JDialog(this, "Pengaturan AI & Detail Scanner Gerbang", true);
         dlg.getContentPane().setBackground(BG);
         dlg.setLayout(new BorderLayout(12, 12));
-        dlg.setSize(1000, 680);
+        dlg.setSize(800, 520);
         dlg.setLocationRelativeTo(this);
 
-        final BufferedImage[] currentFrameHolder = new BufferedImage[1];
-        final boolean[] isVehicleDetected = new boolean[]{false};
-        final String[] hudStatusText = new String[]{"MENUNGGU KENDARAAN..."};
+        JPanel p = new JPanel();
+        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
+        p.setBackground(CARD_BG);
+        p.setBorder(new EmptyBorder(16, 20, 16, 20));
 
-        // Header Dialog
-        JPanel dlgHeader = new JPanel(new BorderLayout());
-        dlgHeader.setBackground(CARD_BG);
-        dlgHeader.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
-            new EmptyBorder(12, 16, 12, 16)));
+        p.add(sectionTitle("Konfigurasi Model AI Vision & Kredensial"));
+        p.add(Box.createVerticalStrut(8));
 
-        JLabel headerTitle = new JLabel(String.format(
-            "<html><b style='font-size:14px;color:%s;'>🎥 Live Video Kamera Gerbang & AI Vision Auto-Detect</b>"
-            + "<br/><span style='color:%s;font-size:10px;'>Streaming video realtime &bull; Deteksi pergerakan mobil otomatis &bull; Verifikasi AI Orion</span></html>",
-            hex(T1), hex(T2)));
-        dlgHeader.add(headerTitle, BorderLayout.WEST);
+        JPanel form = new JPanel(new GridLayout(3, 2, 8, 8));
+        form.setOpaque(false);
 
-        JLabel badgeStatus = new JLabel("ai_config.properties (Ready)");
-        badgeStatus.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        badgeStatus.setForeground(PURPLE);
-        badgeStatus.setBackground(PURPLE_LT);
-        badgeStatus.setOpaque(true);
-        badgeStatus.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(PURPLE, 1), new EmptyBorder(4, 8, 4, 8)));
-        dlgHeader.add(badgeStatus, BorderLayout.EAST);
-        dlg.add(dlgHeader, BorderLayout.NORTH);
+        form.add(fieldLabel("Endpoint API Vision"));
+        JTextField txtEndpoint = field(savedEndpoint);
+        form.add(txtEndpoint);
 
-        // Body: 2 Kolom (Kiri: Video Screen + Controls, Kanan: Hasil AI & Pengaturan)
-        JPanel content = new JPanel(new GridLayout(1, 2, 14, 0));
-        content.setBackground(BG);
-        content.setBorder(new EmptyBorder(0, 14, 0, 14));
+        form.add(fieldLabel("API Key"));
+        JPasswordField txtKey = new JPasswordField(savedApiKey);
+        txtKey.setBackground(FIELD_BG);
+        txtKey.setForeground(T1);
+        txtKey.setCaretColor(T1);
+        txtKey.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1), new EmptyBorder(4, 7, 4, 7)));
+        form.add(txtKey);
 
-        // --- PANEL KIRI: LIVE VIDEO SCREEN ---
-        JPanel leftCard = new JPanel(new BorderLayout(0, 8));
-        leftCard.setBackground(CARD_BG);
-        leftCard.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(12, 12, 12, 12)));
+        form.add(fieldLabel("Model Vision"));
+        JComboBox<String> cbModel = new JComboBox<>(new String[]{"orion", "llama3.2-vision", "llava:latest", "gpt-4o-mini"});
+        cbModel.setEditable(true);
+        cbModel.setSelectedItem(savedModel);
+        styleCombo(cbModel);
+        form.add(cbModel);
+        p.add(form);
 
-        JPanel videoHeader = new JPanel(new BorderLayout());
-        videoHeader.setOpaque(false);
-        JLabel leftTitle = sectionTitle("Live Feed Kamera Gerbang");
-        JLabel lblLiveBadge = new JLabel("🔴 STREAMING AKTIF");
-        lblLiveBadge.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblLiveBadge.setForeground(GREEN);
-        videoHeader.add(leftTitle, BorderLayout.WEST);
-        videoHeader.add(lblLiveBadge, BorderLayout.EAST);
-        leftCard.add(videoHeader, BorderLayout.NORTH);
+        p.add(Box.createVerticalStrut(12));
+        JLabel hint = new JLabel("<html><span style='color:#94a3b8;font-size:10px;'>Kredensial disimpan aman di <b>ai_config.properties</b> (terproteksi .gitignore).</span></html>");
+        p.add(hint);
 
-        JLabel videoScreen = new JLabel("", SwingConstants.CENTER);
-        videoScreen.setPreferredSize(new Dimension(450, 310));
-        videoScreen.setOpaque(true);
-        videoScreen.setBackground(Color.BLACK);
-        videoScreen.setBorder(BorderFactory.createLineBorder(BORDER, 1));
-        leftCard.add(videoScreen, BorderLayout.CENTER);
+        p.add(Box.createVerticalStrut(16));
+        JButton btnSave = button("Simpan Perubahan Kredensial", GREEN, WHITE);
+        btnSave.addActionListener(e -> {
+            savedEndpoint = txtEndpoint.getText().trim();
+            savedApiKey   = new String(txtKey.getPassword()).trim();
+            savedModel    = cbModel.getSelectedItem().toString().trim();
 
-        // Sub Controls
-        JPanel leftActions = new JPanel(new GridLayout(2, 2, 6, 6));
-        leftActions.setOpaque(false);
+            java.util.Properties props = new java.util.Properties();
+            props.setProperty("ai.endpoint", savedEndpoint);
+            props.setProperty("ai.api_key", savedApiKey);
+            props.setProperty("ai.model", savedModel);
+            AIVisionService.saveConfig(props);
 
-        JButton btnToggleVideo = button("⏹ Hentikan Video", RED, WHITE);
-        JButton btnSimulateCar = button("🚗 Simulasi Mobil Masuk (Xenia)", BLUE, WHITE);
-        JButton btnVideoFile   = button("📁 Buka File Video...", CARD_BG, T1);
-        JButton btnManualSnap  = button("📸 Snapshot Manual", CARD_BG, T1);
-
-        leftActions.add(btnToggleVideo);
-        leftActions.add(btnSimulateCar);
-        leftActions.add(btnVideoFile);
-        leftActions.add(btnManualSnap);
-        leftCard.add(leftActions, BorderLayout.SOUTH);
-
-        content.add(leftCard);
-
-        // --- PANEL KANAN: STATUS SENSOR & AI DETEKSI ---
-        JPanel rightCard = new JPanel(new BorderLayout(0, 10));
-        rightCard.setBackground(CARD_BG);
-        rightCard.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(12, 14, 12, 14)));
-
-        JPanel rightTop = new JPanel();
-        rightTop.setLayout(new BoxLayout(rightTop, BoxLayout.Y_AXIS));
-        rightTop.setOpaque(false);
-
-        rightTop.add(sectionTitle("Sensor & Opsi Deteksi Otomatis"));
-        rightTop.add(Box.createVerticalStrut(4));
-
-        JCheckBox chkAutoSend = new JCheckBox("Deteksi Otomatis (Kirim ke AI saat mobil terdeteksi)", true);
-        chkAutoSend.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        chkAutoSend.setForeground(GREEN);
-        chkAutoSend.setOpaque(false);
-        rightTop.add(chkAutoSend);
-
-        JCheckBox chkAutoCheckIn = new JCheckBox("Auto Check-In & Buka Portal saat plat terverifikasi", false);
-        chkAutoCheckIn.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        chkAutoCheckIn.setForeground(T2);
-        chkAutoCheckIn.setOpaque(false);
-        rightTop.add(chkAutoCheckIn);
-
-        rightTop.add(Box.createVerticalStrut(10));
-        rightTop.add(sectionTitle("Kredensial AI Vision (Tersimpan)"));
-
-        JPanel credGrid = new JPanel(new GridLayout(2, 2, 8, 4));
-        credGrid.setOpaque(false);
-        credGrid.add(fieldLabel("Endpoint AI"));
-        JLabel lblEp = new JLabel(savedEndpoint);
-        lblEp.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblEp.setForeground(T2);
-        credGrid.add(lblEp);
-
-        credGrid.add(fieldLabel("API Key"));
-        JLabel lblKey = new JLabel(AIVisionService.maskApiKey(savedApiKey));
-        lblKey.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblKey.setForeground(T2);
-        credGrid.add(lblKey);
-        rightTop.add(credGrid);
-
-        rightTop.add(Box.createVerticalStrut(10));
-        JLabel lblScanStatus = new JLabel("<html><span style='color:#38bdf8;font-size:10px;'>Sensor aktif: Kamera sedang memindai gerbang masuk...</span></html>");
-        lblScanStatus.setBorder(new EmptyBorder(2, 2, 2, 2));
-        rightTop.add(lblScanStatus);
-
-        rightCard.add(rightTop, BorderLayout.NORTH);
-
-        // Form Hasil Deteksi
-        JPanel resultPanel = new JPanel();
-        resultPanel.setLayout(new BoxLayout(resultPanel, BoxLayout.Y_AXIS));
-        resultPanel.setOpaque(false);
-
-        resultPanel.add(sectionTitle("Hasil Verifikasi AI Terakhir"));
-        resultPanel.add(Box.createVerticalStrut(4));
-
-        JPanel resultGrid = new JPanel(new GridLayout(3, 2, 8, 6));
-        resultGrid.setOpaque(false);
-
-        resultGrid.add(fieldLabel("Nomor Plat Terdeteksi"));
-        JTextField txtOutPlat = field("-");
-        txtOutPlat.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        txtOutPlat.setForeground(BLUE);
-        resultGrid.add(txtOutPlat);
-
-        resultGrid.add(fieldLabel("Merk / Model Terdeteksi"));
-        JTextField txtOutMerk = field("-");
-        resultGrid.add(txtOutMerk);
-
-        resultGrid.add(fieldLabel("Tipe Kendaraan"));
-        JComboBox<String> cbOutTipe = new JComboBox<>(new String[]{"MOBIL", "MOTOR", "MOBIL_LISTRIK"});
-        styleCombo(cbOutTipe);
-        resultGrid.add(cbOutTipe);
-
-        resultPanel.add(resultGrid);
-        rightCard.add(resultPanel, BorderLayout.CENTER);
-
-        // Tombol Bawah
-        JPanel botExec = new JPanel(new GridLayout(1, 2, 8, 0));
-        botExec.setOpaque(false);
-
-        JButton btnApply = button("✅ Terapkan ke Form", GREEN, WHITE);
-        JButton btnDirect = button("🚀 Auto Check-In & Buka Gate", BLUE, WHITE);
-
-        botExec.add(btnApply);
-        botExec.add(btnDirect);
-        rightCard.add(botExec, BorderLayout.SOUTH);
-
-        content.add(rightCard);
-        dlg.add(content, BorderLayout.CENTER);
-
-        // Inisialisasi Live Streamer
-        final LiveCameraStreamer[] streamerHolder = new LiveCameraStreamer[1];
-        final LiveCameraStreamer streamer = new LiveCameraStreamer(new LiveCameraStreamer.StreamListener() {
-            @Override
-            public void onNewFrame(BufferedImage frame) {
-                currentFrameHolder[0] = frame;
-                SwingUtilities.invokeLater(() -> {
-                    drawVideoFrameWithHUD(videoScreen, frame, isVehicleDetected[0], hudStatusText[0]);
-                });
-            }
-
-            @Override
-            public void onVehicleDetected(BufferedImage frame) {
-                if (!chkAutoSend.isSelected()) return;
-
-                isVehicleDetected[0] = true;
-                hudStatusText[0] = "MOBIL TERDETEKSI! MENGIRIM KE AI...";
-                SwingUtilities.invokeLater(() -> {
-                    lblScanStatus.setText("<html><span style='color:#a855f7;'>🚗 Mobil terdeteksi di video! Mengirim ke AI Orion...</span></html>");
-                    drawVideoFrameWithHUD(videoScreen, frame, true, hudStatusText[0]);
-                });
-
-                // Jalankan analisis vision di background worker
-                new Thread(() -> {
-                    try {
-                        DetectionResult res = AIVisionService.analyzeVehicleImage(frame, savedEndpoint, savedApiKey, savedModel);
-                        SwingUtilities.invokeLater(() -> {
-                            isVehicleDetected[0] = false;
-                            hudStatusText[0] = "VERIFIKASI AI: " + res.plat + " (" + res.merk + ")";
-                            txtOutPlat.setText(res.plat);
-                            txtOutMerk.setText(res.merk);
-                            cbOutTipe.setSelectedItem(res.tipe);
-
-                            if (res.isOfflineFallback) {
-                                lblScanStatus.setText("<html><span style='color:#f59e0b;'>[Standby] " + res.statusMessage + "</span></html>");
-                            } else {
-                                lblScanStatus.setText("<html><span style='color:#22c55e;'>✅ <b>AI Verified:</b> " + res.plat + " (" + res.merk + ")</span></html>");
-                            }
-
-                            if (chkAutoCheckIn.isSelected()) {
-                                if (streamerHolder[0] != null) streamerHolder[0].stopStream();
-                                dlg.dispose();
-                                txtPlat.setText(res.plat);
-                                txtMerk.setText(res.merk);
-                                cbTipe.setSelectedItem(res.tipe);
-                                updateAlokasiHint();
-                                handleCheckIn();
-                            }
-                        });
-                    } catch (Exception ex) {
-                        SwingUtilities.invokeLater(() -> {
-                            isVehicleDetected[0] = false;
-                            hudStatusText[0] = "ERROR AI: " + ex.getMessage();
-                            lblScanStatus.setText("<html><span style='color:#ef4444;'>Error AI: " + ex.getMessage() + "</span></html>");
-                        });
-                    }
-                }).start();
-            }
-
-            @Override
-            public void onStatusChange(String status, boolean isError) {
-                SwingUtilities.invokeLater(() -> {
-                    lblScanStatus.setText("<html><span style='color:" + (isError ? "#ef4444" : "#38bdf8") + ";'>" + status + "</span></html>");
-                });
-            }
-        });
-        streamerHolder[0] = streamer;
-
-        // Langsung mulai video kamera saat dialog dibuka
-        streamer.startLiveCamera();
-
-        btnToggleVideo.addActionListener(e -> {
-            if (streamer.isStreaming()) {
-                streamer.stopStream();
-                btnToggleVideo.setText("▶ Mulai Live Video");
-                btnToggleVideo.setBackground(TEAL);
-                lblLiveBadge.setText("⏹ VIDEO BERHENTI");
-                lblLiveBadge.setForeground(T3);
-            } else {
-                streamer.startLiveCamera();
-                btnToggleVideo.setText("⏹ Hentikan Video");
-                btnToggleVideo.setBackground(RED);
-                lblLiveBadge.setText("🔴 STREAMING AKTIF");
-                lblLiveBadge.setForeground(GREEN);
-            }
-        });
-
-        btnSimulateCar.addActionListener(e -> {
-            File s = new File("sample_car.jpg");
-            if (s.exists()) {
-                try {
-                    BufferedImage carImg = ImageIO.read(s);
-                    if (carImg != null) {
-                        currentFrameHolder[0] = carImg;
-                        streamer.triggerManualDetection(carImg);
-                    }
-                } catch (Exception ex) {
-                    warn("Gagal memuat sample_car.jpg: " + ex.getMessage());
-                }
-            } else {
-                warn("File sample_car.jpg tidak ditemukan.");
-            }
-        });
-
-        btnVideoFile.addActionListener(e -> {
-            JFileChooser ch = new JFileChooser(".");
-            ch.setFileFilter(new FileNameExtensionFilter("Video & Gambar (*.mp4, *.mov, *.jpg, *.png)", "mp4", "mov", "mkv", "avi", "jpg", "jpeg", "png"));
-            if (ch.showOpenDialog(dlg) == JFileChooser.APPROVE_OPTION) {
-                File sel = ch.getSelectedFile();
-                String name = sel.getName().toLowerCase();
-                if (name.endsWith(".mp4") || name.endsWith(".mov") || name.endsWith(".mkv") || name.endsWith(".avi")) {
-                    streamer.startVideoFile(sel);
-                    btnToggleVideo.setText("⏹ Hentikan Video");
-                    btnToggleVideo.setBackground(RED);
-                    lblLiveBadge.setText("▶ VIDEO FILE: " + sel.getName());
-                    lblLiveBadge.setForeground(BLUE);
-                } else {
-                    try {
-                        BufferedImage img = ImageIO.read(sel);
-                        if (img != null) {
-                            currentFrameHolder[0] = img;
-                            streamer.triggerManualDetection(img);
-                        }
-                    } catch (Exception ex) {
-                        warn("Gagal membaca gambar: " + ex.getMessage());
-                    }
-                }
-            }
-        });
-
-        btnManualSnap.addActionListener(e -> {
-            if (currentFrameHolder[0] != null) {
-                streamer.triggerManualDetection(currentFrameHolder[0]);
-            } else {
-                warn("Belum ada frame video aktif.");
-            }
-        });
-
-        btnApply.addActionListener(e -> {
-            streamer.stopStream();
-            txtPlat.setText(txtOutPlat.getText().trim());
-            txtMerk.setText(txtOutMerk.getText().trim());
-            cbTipe.setSelectedItem(cbOutTipe.getSelectedItem());
-            updateAlokasiHint();
-            tabs.setSelectedIndex(1);
+            JOptionPane.showMessageDialog(dlg, "Kredensial berhasil disimpan ke ai_config.properties!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
             dlg.dispose();
-            lblNotice.setText("<html><span style='color:#22c55e;'>Data hasil verifikasi video AI diterapkan ke Form Check-In!</span></html>");
         });
+        p.add(btnSave);
 
-        btnDirect.addActionListener(e -> {
-            streamer.stopStream();
-            txtPlat.setText(txtOutPlat.getText().trim());
-            txtMerk.setText(txtOutMerk.getText().trim());
-            cbTipe.setSelectedItem(cbOutTipe.getSelectedItem());
-            updateAlokasiHint();
-            tabs.setSelectedIndex(1);
-            dlg.dispose();
-            handleCheckIn();
-        });
-
-        dlg.addWindowListener(new WindowAdapter() {
-            @Override public void windowClosing(WindowEvent e) {
-                streamer.stopStream();
-            }
-        });
-
+        dlg.add(p, BorderLayout.CENTER);
         dlg.setVisible(true);
-    }
-
-    private void drawVideoFrameWithHUD(JLabel lbl, BufferedImage frame, boolean isDetected, String hudStatus) {
-        if (frame == null) return;
-        int targetW = 450, targetH = 310;
-        BufferedImage combined = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2 = combined.createGraphics();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-
-        double scale = Math.max((double) targetW / frame.getWidth(), (double) targetH / frame.getHeight());
-        int sw = (int) (frame.getWidth() * scale);
-        int sh = (int) (frame.getHeight() * scale);
-        int ox = (targetW - sw) / 2;
-        int oy = (targetH - sh) / 2;
-        g2.drawImage(frame, ox, oy, sw, sh, null);
-
-        // Scanner Reticle di Tengah
-        int rw = 280, rh = 180;
-        int rx = (targetW - rw) / 2;
-        int ry = (targetH - rh) / 2;
-
-        Color hudColor = isDetected ? new Color(34, 197, 94) : new Color(59, 130, 246);
-        g2.setColor(hudColor);
-        g2.setStroke(new BasicStroke(2.5f));
-
-        int cLen = 22;
-        g2.drawLine(rx, ry, rx + cLen, ry);
-        g2.drawLine(rx, ry, rx, ry + cLen);
-        g2.drawLine(rx + rw, ry, rx + rw - cLen, ry);
-        g2.drawLine(rx + rw, ry, rx + rw, ry + cLen);
-        g2.drawLine(rx, ry + rh, rx + cLen, ry + rh);
-        g2.drawLine(rx, ry + rh, rx, ry + rh - cLen);
-        g2.drawLine(rx + rw, ry + rh, rx + rw - cLen, ry + rh);
-        g2.drawLine(rx + rw, ry + rh, rx + rw, ry + rh - cLen);
-
-        g2.setColor(new Color(hudColor.getRed(), hudColor.getGreen(), hudColor.getBlue(), 25));
-        g2.fillRect(rx, ry, rw, rh);
-
-        // Header HUD
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        g2.setColor(Color.WHITE);
-        g2.drawString("🔴 LIVE FEED • GERBANG MASUK", 12, 22);
-
-        // Bottom HUD Status Badge
-        g2.setColor(new Color(15, 23, 42, 210));
-        g2.fillRoundRect(rx, ry + rh - 24, rw, 22, 6, 6);
-        g2.setColor(hudColor);
-        g2.drawString(hudStatus != null ? hudStatus : "MENUNGGU KENDARAAN...", rx + 10, ry + rh - 9);
-
-        g2.dispose();
-        lbl.setIcon(new ImageIcon(combined));
-        lbl.setText(null);
     }
 
     private void handleCheckIn() {
@@ -1117,6 +1100,14 @@ public class AdminGUI extends JFrame {
             String tipe = (String) cbTipe.getSelectedItem();
             int jam = Integer.parseInt(txtJamMasuk.getText().trim());
             if (plat.isEmpty() || merk.isEmpty()) { warn("Plat dan merk tidak boleh kosong."); return; }
+
+            // Cek duplikasi di gedung
+            SlotParkir sudahParkir = gedung.cariSlotDenganPlat(plat);
+            if (sudahParkir != null) {
+                warn("Kendaraan plat " + plat + " sudah terparkir di slot " + sudahParkir.getIdSlot() + "!\nDuplikasi dicegah.");
+                return;
+            }
+
             KarcisParkir tiket = gedung.prosesMasuk(new Kendaraan(plat, tipe, merk), jam);
             if (tiket != null) {
                 animGate(true, "TERBUKA MASUK");
