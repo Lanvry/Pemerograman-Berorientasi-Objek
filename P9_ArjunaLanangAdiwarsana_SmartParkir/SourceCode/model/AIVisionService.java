@@ -1,5 +1,7 @@
 package model;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URI;
@@ -17,6 +19,12 @@ import javax.imageio.ImageIO;
 public class AIVisionService {
 
     public static final String CONFIG_FILE = "ai_config.properties";
+
+    // Singleton HttpClient dengan HTTP/2 dan connection pool aktif agar eksekusi AI satset tanpa overhead handshake berulang
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_2)
+        .connectTimeout(Duration.ofSeconds(6))
+        .build();
 
     public static Properties loadConfig() {
         Properties props = new Properties();
@@ -97,13 +105,31 @@ public class AIVisionService {
         return tempFile;
     }
 
+    public static BufferedImage prepareOptimizedFrame(BufferedImage src, int maxDimension) {
+        if (src == null) return null;
+        int w = src.getWidth();
+        int h = src.getHeight();
+        if (w <= maxDimension && h <= maxDimension) return src;
+        double scale = (double) maxDimension / Math.max(w, h);
+        int targetW = Math.max(1, (int) (w * scale));
+        int targetH = Math.max(1, (int) (h * scale));
+        BufferedImage resized = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = resized.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2.drawImage(src, 0, 0, targetW, targetH, null);
+        g2.dispose();
+        return resized;
+    }
+
     public static DetectionResult analyzeVehicleImage(BufferedImage img, String endpointUrl, String apiKey, String modelName) {
         if (img == null) {
             return new DetectionResult("-", "-", "MOBIL", "", false, "Frame gambar kosong.", false);
         }
         try {
+            // Optimasi kecepatan: resize ke max 360px agar payload kecil (25KB vs 250KB) & tokens berkurang drastis
+            BufferedImage optimized = prepareOptimizedFrame(img, 360);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(img, "jpg", baos);
+            ImageIO.write(optimized, "jpg", baos);
             byte[] bytes = baos.toByteArray();
             return analyzeVehicleBytes(bytes, endpointUrl, apiKey, modelName);
         } catch (Exception ex) {
@@ -116,6 +142,10 @@ public class AIVisionService {
             return new DetectionResult("-", "-", "MOBIL", "", false, "File gambar tidak ditemukan.", false);
         }
         try {
+            BufferedImage img = ImageIO.read(imageFile);
+            if (img != null) {
+                return analyzeVehicleImage(img, endpointUrl, apiKey, modelName);
+            }
             byte[] fileBytes = Files.readAllBytes(imageFile.toPath());
             return analyzeVehicleBytes(fileBytes, endpointUrl, apiKey, modelName);
         } catch (Exception ex) {
@@ -131,7 +161,6 @@ public class AIVisionService {
                 ? "https://pi.leopard-gila.ts.net/v1/chat/completions"
                 : endpointUrl.trim();
 
-            // Auto-append path jika user hanya memasukkan domain host
             if (!url.contains("/chat/completions") && !url.contains("/api/")) {
                 if (url.endsWith("/")) url = url.substring(0, url.length() - 1);
                 if (url.endsWith("/v1")) url += "/chat/completions";
@@ -142,8 +171,6 @@ public class AIVisionService {
                 ? "orion"
                 : modelName.trim();
 
-            String prompt = "Identifikasi kendaraan pada gambar ini secara akurat. Berikan plat nomor kendaraan (plat), merk dan tipe/seri mobil/motor (merk), dan tipe kategori ('MOBIL', 'MOTOR', atau 'MOBIL_LISTRIK'). Jika tidak ada kendaraan atau plat nomor tidak terbaca, kembalikan: {\"plat\":\"TIDAK_ADA\", \"merk\":\"-\", \"tipe\":\"MOBIL\"}. JAWAB HANYA DALAM FORMAT JSON SEPERTI CONTOH TANPA TEKS LAIN: {\"plat\":\"...\", \"merk\":\"...\", \"tipe\":\"MOBIL|MOTOR|MOBIL_LISTRIK\"}";
-
             String requestBody;
             boolean isOpenAIFormat = url.contains("/v1/") || url.contains("openai.com") || url.contains("ts.net");
 
@@ -152,14 +179,19 @@ public class AIVisionService {
                     + "  \"model\": \"" + escapeJson(model) + "\",\n"
                     + "  \"messages\": [\n"
                     + "    {\n"
+                    + "      \"role\": \"system\",\n"
+                    + "      \"content\": \"You are a fast vehicle license plate OCR extractor. Output ONLY raw JSON: {\\\"plat\\\":\\\"...\\\",\\\"merk\\\":\\\"...\\\",\\\"tipe\\\":\\\"MOBIL|MOTOR|MOBIL_LISTRIK\\\"}. If no vehicle or plate is visible, return {\\\"plat\\\":\\\"TIDAK_ADA\\\",\\\"merk\\\":\\\"-\\\",\\\"tipe\\\":\\\"MOBIL\\\"}. Do not write any markdown or conversational text.\"\n"
+                    + "    },\n"
+                    + "    {\n"
                     + "      \"role\": \"user\",\n"
                     + "      \"content\": [\n"
-                    + "        {\"type\": \"text\", \"text\": \"" + escapeJson(prompt) + "\"},\n"
+                    + "        {\"type\": \"text\", \"text\": \"Extract vehicle plate, brand, and type:\"},\n"
                     + "        {\"type\": \"image_url\", \"image_url\": {\"url\": \"data:image/jpeg;base64," + base64Image + "\"}}\n"
                     + "      ]\n"
                     + "    }\n"
                     + "  ],\n"
-                    + "  \"max_tokens\": 300\n"
+                    + "  \"max_tokens\": 45,\n"
+                    + "  \"temperature\": 0.0\n"
                     + "}";
             } else {
                 // Native Ollama API (/api/chat)
@@ -168,21 +200,18 @@ public class AIVisionService {
                     + "  \"messages\": [\n"
                     + "    {\n"
                     + "      \"role\": \"user\",\n"
-                    + "      \"content\": \"" + escapeJson(prompt) + "\",\n"
+                    + "      \"content\": \"Extract plate, brand, category as JSON: {\\\"plat\\\":\\\"...\\\",\\\"merk\\\":\\\"...\\\",\\\"tipe\\\":\\\"MOBIL|MOTOR|MOBIL_LISTRIK\\\"}\",\n"
                     + "      \"images\": [\"" + base64Image + "\"]\n"
                     + "    }\n"
                     + "  ],\n"
+                    + "  \"options\": {\"temperature\": 0.0, \"num_predict\": 45},\n"
                     + "  \"stream\": false\n"
                     + "}";
             }
 
-            HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
-                .build();
-
             HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .timeout(Duration.ofSeconds(60))
+                .timeout(Duration.ofSeconds(15))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody));
 
@@ -194,7 +223,8 @@ public class AIVisionService {
                 reqBuilder.header("Authorization", "Bearer " + key);
             }
 
-            HttpResponse<String> response = client.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
+            // Gunakan singleton persistent HTTP_CLIENT (HTTP/2 keep-alive socket reuse)
+            HttpResponse<String> response = HTTP_CLIENT.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 String respBody = response.body();

@@ -20,6 +20,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.text.NumberFormat;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AdminGUI extends JFrame {
 
@@ -87,6 +90,8 @@ public class AdminGUI extends JFrame {
     private long cctvCooldownUntil = 0;
     private String lastProcessedPlate = "";
     private long lastProcessedTime = 0;
+    private final ExecutorService aiExecutor = Executors.newSingleThreadExecutor();
+    private final AtomicBoolean isAiProcessing = new AtomicBoolean(false);
 
     public AdminGUI() {
         super("SmartParkir — CCTV Live Monitoring & AI Auto-Gate");
@@ -654,19 +659,19 @@ public class AdminGUI extends JFrame {
 
     private void handleAutoVehicleDetected(BufferedImage frame) {
         long now = System.currentTimeMillis();
-        if (now < cctvCooldownUntil) return; // Dalam jeda/cooldown anti-duplikasi
+        if (now < cctvCooldownUntil) return;
+        if (!isAiProcessing.compareAndSet(false, true)) return; // Mencegah penumpukan thread/frame saat AI sedang inferensi
 
-        cctvCooldownUntil = now + 9000; // Pasang cooldown 9 detik agar kamera berhenti memindai sementara
         cctvVehicleDetected = true;
-        cctvHudText = "MOBIL TERDETEKSI! MENGIRIM KE AI ORION...";
+        cctvHudText = "⚡ AI MEMINDAI PLAT (SATSET)...";
 
         SwingUtilities.invokeLater(() -> {
-            lblCCTVStatus.setText("<html><span style='color:#a855f7;font-size:10px;'>🚗 Mobil terdeteksi! Memverifikasi plat ke AI Orion...</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#38bdf8;font-size:10px;'>⚡ <b>AI Vision Aktif:</b> Memverifikasi plat nomor kendaraan...</span></html>");
             drawCCTVScreen(frame, true, cctvHudText);
         });
 
-        // Jalankan klasifikasi AI di thread latar belakang
-        new Thread(() -> {
+        // Eksekusi AI vision satset di background worker
+        aiExecutor.submit(() -> {
             try {
                 DetectionResult res = AIVisionService.analyzeVehicleImage(frame, savedEndpoint, savedApiKey, savedModel);
                 SwingUtilities.invokeLater(() -> {
@@ -677,9 +682,12 @@ public class AdminGUI extends JFrame {
                     cctvVehicleDetected = false;
                     cctvHudText = "ERROR AI: " + ex.getMessage();
                     lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Error AI: " + ex.getMessage() + "</span></html>");
+                    startCCTVCooldownCountdown(1);
                 });
+            } finally {
+                isAiProcessing.set(false);
             }
-        }).start();
+        });
     }
 
     private void processAIDetectionResult(DetectionResult res) {
@@ -690,9 +698,9 @@ public class AdminGUI extends JFrame {
         // 0. CEK KEAKURATAN DETEKSI (Plat harus terdeteksi jelas dan valid)
         if (!AIVisionService.isValidPlate(plat)) {
             cctvVehicleDetected = false;
-            cctvHudText = "STANDBY - KENDARAAN BELUM TERDETEKSI JELAS";
-            lblCCTVStatus.setText("<html><span style='color:#94a3b8;font-size:10px;'>👁️ Kamera aktif memantau gerbang... (Menunggu kendaraan dengan plat jelas)</span></html>");
-            startCCTVCooldownCountdown(4);
+            cctvHudText = "STANDBY - MEMANTAU GERBANG";
+            lblCCTVStatus.setText("<html><span style='color:#94a3b8;font-size:10px;'>👁️ Kamera aktif memantau gerbang masuk...</span></html>");
+            startCCTVCooldownCountdown(1); // Jeda singkat 1 detik agar langsung tanggap jika mobil maju
             return;
         }
 
