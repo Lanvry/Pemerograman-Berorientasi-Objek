@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartParkir Admin Dashboard - PENS PSDKU</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f111a;
+      --card-bg: #181a27;
+      --card-inner: #1f2233;
+      --border-color: #2b2f45;
+      --accent-blue: #3b82f6;
+      --accent-cyan: #06b6d4;
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-yellow: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --text-white: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-white);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* TOP NAVBAR */
+    header {
+      background: rgba(24, 26, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      color: white;
+      box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+    }
+
+    .brand-text h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .stats-bar {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .stat-pill {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .stat-pill span {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .stat-pill strong {
+      font-size: 14px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* MAIN CONTAINER */
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 24px;
+      flex: 1;
+      width: 100%;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* BARRIER GATE ANIMATION BOX */
+    .gate-visual-box {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .gate-canvas {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .pillar {
+      width: 14px;
+      height: 38px;
+      background: #475569;
+      border-radius: 3px;
+      position: relative;
+    }
+
+    .barrier-arm {
+      width: 60px;
+      height: 6px;
+      background: repeating-linear-gradient(45deg, #ef4444, #ef4444 8px, #ffffff 8px, #ffffff 16px);
+      border-radius: 3px;
+      transform-origin: 0% 50%;
+      transform: rotate(0deg);
+      transition: transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .barrier-arm.open {
+      transform: rotate(-75deg);
+      background: repeating-linear-gradient(45deg, #10b981, #10b981 8px, #ffffff 8px, #ffffff 16px);
+    }
+
+    .gate-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-red);
+      transition: all 0.3s;
+    }
+
+    .gate-badge.open {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+    }
+
+    /* SLOTS MATRIX */
+    .floor-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--accent-blue);
+      color: white;
+      border-color: var(--accent-blue);
+    }
+
+    .slots-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .slot-item {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 110px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .slot-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .slot-item.available {
+      border-color: rgba(16, 185, 129, 0.35);
+      background: linear-gradient(145deg, rgba(16, 185, 129, 0.05), var(--card-inner));
+    }
+
+    .slot-item.available::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulseGlow 1.8s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.3); }
+    }
+
+    .slot-item.occupied {
+      border-color: rgba(239, 68, 68, 0.35);
+      background: linear-gradient(145deg, rgba(239, 68, 68, 0.08), var(--card-inner));
+    }
+
+    .slot-item.ev-charging {
+      border-color: rgba(139, 92, 246, 0.45);
+      background: linear-gradient(145deg, rgba(139, 92, 246, 0.08), var(--card-inner));
+    }
+
+    .slot-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slot-id {
+      font-size: 14px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .slot-type-badge {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 6px;
+      background: var(--card-bg);
+      color: var(--text-muted);
+    }
+
+    .slot-body {
+      text-align: center;
+      margin: 8px 0;
+    }
+
+    .slot-plate {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--accent-red);
+      letter-spacing: 0.5px;
+    }
+
+    .slot-model {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .slot-status-text {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-green);
+    }
+
+    /* RIGHT COLUMN CONTROLS */
+    .tabs-actions {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 4px;
+    }
+
+    .action-tab-btn {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+    }
+
+    .action-tab-btn.active {
+      color: var(--accent-blue);
+    }
+
+    .action-tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--accent-blue);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .form-input, .form-select {
+      background: var(--card-inner);
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      border-radius: 10px;
+      color: var(--text-white);
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+      color: white;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--accent-green), #059669);
+      color: white;
+      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.5);
+    }
+
+    /* RECENT TRANSACTIONS TABLE */
+    .table-container {
+      max-height: 240px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th {
+      background: var(--card-inner);
+      color: var(--text-muted);
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(43, 47, 69, 0.4);
+    }
+
+    tr:hover td {
+      background: rgba(31, 34, 51, 0.6);
+    }
+
+    .badge-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .badge-paid {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+    }
+
+    .badge-active {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-yellow);
+    }
+
+    /* RECEIPT MODAL */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-backdrop.show {
+      display: flex;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .receipt-card {
+      background: #ffffff;
+      color: #1e293b;
+      width: 360px;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .receipt-header {
+      text-align: center;
+      border-bottom: 2px dashed #cbd5e1;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+    }
+
+    .receipt-header h3 {
+      font-size: 16px;
+      color: #0f172a;
+    }
+
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .receipt-total {
+      border-top: 2px dashed #cbd5e1;
+      margin-top: 12px;
+      padding-top: 12px;
+      font-weight: 800;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .receipt-btn-close {
+      margin-top: 18px;
+      width: 100%;
+      padding: 10px;
+      background: #0f172a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">P</div>
+      <div class="brand-text">
+        <h1>SmartParkir Command Center</h1>
+        <p>Mall Grand PENS Plaza • Sistem Otomasi Slot Bertingkat</p>
+      </div>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill">
+        <span>Total Slot</span>
+        <strong id="statTotal">9</strong>
+      </div>
+      <div class="stat-pill">
+        <span>Tersedia</span>
+        <strong id="statAvailable" style="color: var(--accent-green);">8</strong>
+      </div>
+      <div class="stat-pill">
+        <span>Terisi</span>
+        <strong id="statOccupied" style="color: var(--accent-red);">1</strong>
+      </div>
+      <div class="stat-pill">
+        <span>Total Kas</span>
+        <strong id="statRevenue" style="color: var(--accent-yellow);">Rp 0</strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <div class="container">
+
+    <!-- LEFT: PARKING GRID & GATE STATUS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          <span>🅿️ Denah Slot Parkir Realtime</span>
+        </div>
+        <div class="floor-tabs">
+          <button class="tab-btn active" onclick="switchFloor('ALL')">Semua</button>
+          <button class="tab-btn" onclick="switchFloor(1)">Lantai 1</button>
+          <button class="tab-btn" onclick="switchFloor(2)">Lantai 2</button>
+        </div>
+      </div>
+
+      <!-- ANIMATED BARRIER GATE -->
+      <div class="gate-visual-box">
+        <div class="gate-canvas">
+          <div class="pillar"></div>
+          <div class="barrier-arm" id="barrierArm"></div>
+          <div>
+            <div style="font-size: 13px; font-weight: 700;" id="gateTitle">Portal Masuk / Keluar</div>
+            <div style="font-size: 11px; color: var(--text-muted);" id="gateSub">Sensor Otomatis Barrier Arm</div>
+          </div>
+        </div>
+        <div class="gate-badge" id="gateBadge">PORTAL TERTUTUP</div>
+      </div>
+
+      <!-- SLOTS GRID -->
+      <div class="slots-grid" id="slotsGrid">
+        <!-- Generated Dynamically via JS -->
+      </div>
+    </div>
+
+    <!-- RIGHT: QUICK ACTIONS & LOGS -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+
+      <!-- ACTION CARD -->
+      <div class="card">
+        <div class="tabs-actions">
+          <button class="action-tab-btn active" onclick="switchActionTab('checkin')">Check-In Masuk</button>
+          <button class="action-tab-btn" onclick="switchActionTab('checkout')">Check-Out & Kasir</button>
+        </div>
+
+        <!-- FORM CHECK-IN -->
+        <div id="checkinTab">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label>Nomor Plat Kendaraan</label>
+              <input type="text" id="inPlat" class="form-input" placeholder="Contoh: B 1234 ABC" value="L 8899 EV">
+            </div>
+            <div class="form-group">
+              <label>Tipe Kendaraan</label>
+              <select id="inTipe" class="form-select">
+                <option value="MOBIL_LISTRIK">Mobil Listrik (EV)</option>
+                <option value="MOBIL">Mobil Reguler</option>
+                <option value="MOTOR">Sepeda Motor</option>
+              </select>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label>Merk / Model Kendaraan</label>
+              <input type="text" id="inMerk" class="form-input" placeholder="Contoh: Hyundai Ioniq 5" value="Hyundai Ioniq 5">
+            </div>
+            <div class="form-group">
+              <label>Jam Masuk (0 - 23)</label>
+              <input type="number" id="inJam" class="form-input" min="0" max="23" value="9">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="handleCheckIn()">
+            <span>🚗</span> TAP-IN & CARIKAN SLOT TERDEKAT
+          </button>
+        </div>
+
+        <!-- FORM CHECK-OUT -->
+        <div id="checkoutTab" style="display: none;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label>Pilih Tiket / Plat</label>
+              <select id="outTiketSelect" class="form-select" onchange="previewBilling()">
+                <!-- Populated by JS -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Jam Keluar (0 - 23)</label>
+              <input type="number" id="outJam" class="form-input" min="0" max="23" value="13" onchange="previewBilling()">
+            </div>
+          </div>
+          <div style="background: var(--card-inner); padding: 12px; border-radius: 10px; margin-bottom: 12px; border: 1px dashed var(--border-color);">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+              <span style="color: var(--text-muted);">Durasi & Tagihan:</span>
+              <strong id="billingPreview" style="color: var(--accent-yellow);">Rp 0</strong>
+            </div>
+            <div style="font-size: 11px; color: var(--accent-green);" id="evDiscountNotice"></div>
+          </div>
+          <div class="form-group">
+            <label>Metode Pembayaran</label>
+            <select id="outMetode" class="form-select">
+              <option value="E_MONEY">e-Money / Flazz (Tap Reader)</option>
+              <option value="QRIS">QRIS Dinamis</option>
+              <option value="CASH">Tunai (Pos Kasir)</option>
+            </select>
+          </div>
+          <button class="btn btn-success" onclick="handleCheckOut()">
+            <span>💳</span> BAYAR & BUKA GATE KELUAR
+          </button>
+        </div>
+      </div>
+
+      <!-- RECENT TRANSACTION TABLE -->
+      <div class="card" style="flex: 1;">
+        <div class="card-header">
+          <div class="card-title">
+            <span>📋 Riwayat Transaksi Gate</span>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>No. Tiket</th>
+                <th>Plat Nomor</th>
+                <th>Tipe</th>
+                <th>Slot</th>
+                <th>Durasi</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="txTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RECEIPT MODAL -->
+  <div class="modal-backdrop" id="receiptModal">
+    <div class="receipt-card">
+      <div class="receipt-header">
+        <h3>MALL GRAND PENS PLAZA</h3>
+        <p style="font-size: 11px; color: #64748b;">Smart Parking Struk Keluar</p>
+      </div>
+      <div class="receipt-row">
+        <span>No. Tiket</span>
+        <strong id="rTiket">-</strong>
+      </div>
+      <div class="receipt-row">
+        <span>Kendaraan</span>
+        <strong id="rPlat">-</strong>
+      </div>
+      <div class="receipt-row">
+        <span>Slot Parkir</span>
+        <strong id="rSlot">-</strong>
+      </div>
+      <div class="receipt-row">
+        <span>Waktu</span>
+        <strong id="rWaktu">-</strong>
+      </div>
+      <div class="receipt-row">
+        <span>Metode</span>
+        <strong id="rMetode">-</strong>
+      </div>
+      <div class="receipt-total">
+        <span>TOTAL BAYAR</span>
+        <span id="rTotal" style="color: #059669;">Rp 0</span>
+      </div>
+      <button class="receipt-btn-close" onclick="closeReceiptModal()">TUTUP KUITANSI</button>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // In-memory data matching Java classes
+    const slots = [
+      { id: 'MTR-L1-01', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
+      { id: 'MTR-L1-02', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
+      { id: 'MTR-L1-03', floor: 1, type: 'MOTOR', occupied: false, vehicle: null },
+      { id: 'MBL-L1-01', floor: 1, type: 'MOBIL', occupied: true, vehicle: { plate: 'B 1234 ABC', type: 'MOBIL', model: 'Toyota Avanza' } },
+      { id: 'MBL-L1-02', floor: 1, type: 'MOBIL', occupied: false, vehicle: null },
+      { id: 'EV-L1-01',  floor: 1, type: 'MOBIL_LISTRIK', occupied: false, vehicle: null },
+      { id: 'MBL-L2-01', floor: 2, type: 'MOBIL', occupied: false, vehicle: null },
+      { id: 'MBL-L2-02', floor: 2, type: 'MOBIL', occupied: false, vehicle: null },
+      { id: 'EV-L2-01',  floor: 2, type: 'MOBIL_LISTRIK', occupied: false, vehicle: null }
+    ];
+
+    let transactions = [
+      {
+        ticket: 'TKT-0001',
+        vehicle: { plate: 'B 1234 ABC', type: 'MOBIL', model: 'Toyota Avanza' },
+        slotId: 'MBL-L1-01',
+        inHour: 8,
+        outHour: null,
+        paid: false,
+        total: 0,
+        method: '-'
+      }
+    ];
+
+    let totalRevenue = 0;
+    let ticketCounter = 2;
+    let currentFloorFilter = 'ALL';
+
+    function formatRupiah(num) {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
+    }
+
+    // Audio SFX synthesis
+    function playBeep(freq = 880, duration = 0.12) {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function renderSlots() {
+      const grid = document.getElementById('slotsGrid');
+      grid.innerHTML = '';
+
+      const filtered = slots.filter(s => currentFloorFilter === 'ALL' || s.floor === parseInt(currentFloorFilter));
+
+      filtered.forEach(s => {
+        const card = document.createElement('div');
+        const isEV = s.type === 'MOBIL_LISTRIK';
+        card.className = `slot-item ${s.occupied ? 'occupied' : 'available'} ${isEV ? 'ev-charging' : ''}`;
+
+        card.innerHTML = `
+          <div class="slot-header">
+            <span class="slot-id">${s.id}</span>
+            <span class="slot-type-badge">${isEV ? '⚡ EV CHARGE' : s.type} • LT.${s.floor}</span>
+          </div>
+          <div class="slot-body">
+            ${s.occupied ? `
+              <div class="slot-plate">${s.vehicle.plate}</div>
+              <div class="slot-model">${s.vehicle.model}</div>
+            ` : `
+              <div class="slot-status-text">TERSEDIA</div>
+              <div style="font-size: 10px; color: var(--text-muted);">${isEV ? 'Siap Fast Charging' : 'Siap Parkir'}</div>
+            `}
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      updateStats();
+      populateCheckoutSelect();
+    }
+
+    function updateStats() {
+      const total = slots.length;
+      const occupied = slots.filter(s => s.occupied).length;
+      const available = total - occupied;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statAvailable').innerText = available;
+      document.getElementById('statOccupied').innerText = occupied;
+      document.getElementById('statRevenue').innerText = formatRupiah(totalRevenue);
+    }
+
+    function switchFloor(floor) {
+      currentFloorFilter = floor;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      renderSlots();
+    }
+
+    function switchActionTab(tab) {
+      document.querySelectorAll('.action-tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('checkinTab').style.display = tab === 'checkin' ? 'block' : 'none';
+      document.getElementById('checkoutTab').style.display = tab === 'checkout' ? 'block' : 'none';
+      if (tab === 'checkout') previewBilling();
+    }
+
+    function triggerBarrierGate(open, text = 'PORTAL TERBUKA') {
+      const arm = document.getElementById('barrierArm');
+      const badge = document.getElementById('gateBadge');
+      if (open) {
+        arm.classList.add('open');
+        badge.classList.add('open');
+        badge.innerText = text;
+        playBeep(1200, 0.2);
+        setTimeout(() => {
+          arm.classList.remove('open');
+          badge.classList.remove('open');
+          badge.innerText = 'PORTAL TERTUTUP';
+        }, 3200);
+      }
+    }
+
+    // CHECK-IN HANDLER
+    function handleCheckIn() {
+      const plate = document.getElementById('inPlat').value.trim();
+      const type = document.getElementById('inTipe').value;
+      const model = document.getElementById('inMerk').value.trim();
+      const inHour = parseInt(document.getElementById('inJam').value);
+
+      if (!plate || isNaN(inHour)) {
+        alert('Harap isi plat nomor dan jam masuk yang valid!');
+        return;
+      }
+
+      // Find optimal slot (prioritize lowest floor and type match)
+      let candidate = null;
+      for (const s of slots) {
+        if (!s.occupied) {
+          if (type === 'MOTOR' && s.type === 'MOTOR') {
+            if (!candidate || s.floor < candidate.floor) candidate = s;
+          } else if (type === 'MOBIL_LISTRIK') {
+            if (s.type === 'MOBIL_LISTRIK' || s.type === 'MOBIL') {
+              if (!candidate || s.floor < candidate.floor) candidate = s;
+            }
+          } else if (type === 'MOBIL' && s.type === 'MOBIL') {
+            if (!candidate || s.floor < candidate.floor) candidate = s;
+          }
+        }
+      }
+
+      if (!candidate) {
+        alert('Maaf, kapasitas parkir untuk tipe ' + type + ' sudah PENUH!');
+        return;
+      }
+
+      // Fill slot
+      candidate.occupied = true;
+      candidate.vehicle = { plate, type, model };
+
+      const ticketNo = `TKT-${String(ticketCounter++).padStart(4, '0')}`;
+      transactions.unshift({
+        ticket: ticketNo,
+        vehicle: { plate, type, model },
+        slotId: candidate.id,
+        inHour,
+        outHour: null,
+        paid: false,
+        total: 0,
+        method: '-'
+      });
+
+      triggerBarrierGate(true, 'GATE MASUK TERBUKA');
+      renderSlots();
+      renderTransactions();
+    }
+
+    function populateCheckoutSelect() {
+      const select = document.getElementById('outTiketSelect');
+      select.innerHTML = '';
+      const activeTickets = transactions.filter(t => !t.paid);
+
+      if (activeTickets.length === 0) {
+        select.innerHTML = '<option value="">Tidak ada kendaraan parkir</option>';
+        return;
+      }
+
+      activeTickets.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.ticket;
+        opt.innerText = `${t.ticket} - ${t.vehicle.plate} (${t.slotId})`;
+        select.appendChild(opt);
+      });
+      previewBilling();
+    }
+
+    function previewBilling() {
+      const ticketId = document.getElementById('outTiketSelect').value;
+      const outHour = parseInt(document.getElementById('outJam').value) || 12;
+      const ticket = transactions.find(t => t.ticket === ticketId);
+
+      if (!ticket) {
+        document.getElementById('billingPreview').innerText = 'Rp 0';
+        document.getElementById('evDiscountNotice').innerText = '';
+        return;
+      }
+
+      let dur = outHour >= ticket.inHour ? (outHour - ticket.inHour) : (24 - ticket.inHour + outHour);
+      dur = Math.max(1, dur);
+
+      let rate1 = ticket.vehicle.type === 'MOTOR' ? 2000 : 5000;
+      let rateNext = ticket.vehicle.type === 'MOTOR' ? 1000 : 3000;
+
+      let subtotal = rate1 + (dur > 1 ? (dur - 1) * rateNext : 0);
+      let isEV = ticket.vehicle.type === 'MOBIL_LISTRIK';
+      if (isEV) {
+        subtotal = subtotal * 0.8;
+      }
+
+      document.getElementById('billingPreview').innerText = `${formatRupiah(subtotal)} (${dur} Jam)`;
+      document.getElementById('evDiscountNotice').innerText = isEV ? '✨ Diskon Insentif Hijau 20% Diterapkan' : '';
+    }
+
+    // CHECK-OUT HANDLER
+    function handleCheckOut() {
+      const ticketId = document.getElementById('outTiketSelect').value;
+      const outHour = parseInt(document.getElementById('outJam').value);
+      const method = document.getElementById('outMetode').value;
+      const ticket = transactions.find(t => t.ticket === ticketId);
+
+      if (!ticket) {
+        alert('Pilih tiket yang valid untuk check-out!');
+        return;
+      }
+
+      let dur = outHour >= ticket.inHour ? (outHour - ticket.inHour) : (24 - ticket.inHour + outHour);
+      dur = Math.max(1, dur);
+
+      let rate1 = ticket.vehicle.type === 'MOTOR' ? 2000 : 5000;
+      let rateNext = ticket.vehicle.type === 'MOTOR' ? 1000 : 3000;
+      let subtotal = rate1 + (dur > 1 ? (dur - 1) * rateNext : 0);
+
+      if (ticket.vehicle.type === 'MOBIL_LISTRIK') {
+        subtotal = subtotal * 0.8;
+      }
+
+      // Mark paid
+      ticket.paid = true;
+      ticket.outHour = outHour;
+      ticket.total = subtotal;
+      ticket.method = method;
+      totalRevenue += subtotal;
+
+      // Free slot
+      const slot = slots.find(s => s.id === ticket.slotId);
+      if (slot) {
+        slot.occupied = false;
+        slot.vehicle = null;
+      }
+
+      triggerBarrierGate(true, 'GATE KELUAR TERBUKA');
+      renderSlots();
+      renderTransactions();
+      showReceipt(ticket);
+    }
+
+    function renderTransactions() {
+      const tbody = document.getElementById('txTableBody');
+      tbody.innerHTML = '';
+
+      transactions.slice(0, 10).forEach(t => {
+        const tr = document.createElement('tr');
+        const dur = t.outHour ? `${t.outHour - t.inHour} Jam` : 'Aktif';
+        tr.innerHTML = `
+          <td style="font-family: 'JetBrains Mono', monospace; font-weight: 700;">${t.ticket}</td>
+          <td>${t.vehicle.plate}</td>
+          <td><span style="font-size: 10px; color: var(--text-muted);">${t.vehicle.type}</span></td>
+          <td><strong style="color: var(--accent-blue);">${t.slotId}</strong></td>
+          <td>${dur}</td>
+          <td><span class="badge-pill ${t.paid ? 'badge-paid' : 'badge-active'}">${t.paid ? 'LUNAS' : 'PARKIR'}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function showReceipt(t) {
+      document.getElementById('rTiket').innerText = t.ticket;
+      document.getElementById('rPlat').innerText = `${t.vehicle.plate} (${t.vehicle.model})`;
+      document.getElementById('rSlot').innerText = t.slotId;
+      document.getElementById('rWaktu').innerText = `${t.inHour}:00 - ${t.outHour}:00`;
+      document.getElementById('rMetode').innerText = t.method;
+      document.getElementById('rTotal').innerText = formatRupiah(t.total);
+      document.getElementById('receiptModal').classList.add('show');
+      playBeep(523, 0.1);
+      setTimeout(() => playBeep(659, 0.15), 100);
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receiptModal').classList.remove('show');
+    }
+
+    // Init run
+    renderSlots();
+    renderTransactions();
+  </script>
+</body>
+</html>
