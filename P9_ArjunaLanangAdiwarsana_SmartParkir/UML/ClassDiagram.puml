@@ -1,0 +1,90 @@
+@startuml
+skinparam classAttributeIconSize 0
+skinparam monochrome false
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+class Kendaraan {
+    - platNomor : String
+    - tipe : String
+    - merk : String
+    + Kendaraan(platNomor : String, tipe : String, merk : String)
+    + getPlatNomor() : String
+    + getTipe() : String
+    + getMerk() : String
+    + isMobilListrik() : boolean
+    + toString() : String
+}
+
+class SlotParkir {
+    - idSlot : String
+    - lantai : int
+    - tipeSlot : String
+    - terisi : boolean
+    - kendaraanParkir : Kendaraan
+    + SlotParkir(idSlot : String, lantai : int, tipeSlot : String)
+    + cocokUntuk(k : Kendaraan) : boolean
+    + isiSlot(k : Kendaraan) : boolean
+    + kosongkanSlot() : Kendaraan
+    + getIdSlot() : String
+    + getLantai() : int
+    + getTipeSlot() : String
+    + isTerisi() : boolean
+    + getKendaraanParkir() : Kendaraan
+    + toString() : String
+}
+
+class KarcisParkir {
+    - nomorTiket : String
+    - kendaraan : Kendaraan
+    - slot : SlotParkir
+    - jamMasuk : int
+    - jamKeluar : int
+    - sudahDibayar : boolean
+    - totalBiaya : double
+    - metodePembayaran : String
+    + KarcisParkir(nomorTiket : String, kendaraan : Kendaraan, slot : SlotParkir, jamMasuk : int)
+    + hitungDurasi(jamKeluarAktual : int) : int
+    + hitungTarif(jamKeluar : int, tarif1 : double, tarif2 : double) : double
+    + prosesPembayaran(metode : String, uangBayar : double) : boolean
+    + getNomorTiket() : String
+    + getKendaraan() : Kendaraan
+    + getSlot() : SlotParkir
+    + getJamMasuk() : int
+    + getJamKeluar() : int
+    + isSudahDibayar() : boolean
+    + getTotalBiaya() : double
+    + getMetodePembayaran() : String
+    + toString() : String
+}
+
+class GedungParkir {
+    - namaGedung : String
+    - daftarSlot : List<SlotParkir>
+    - riwayatTransaksi : List<KarcisParkir>
+    - tarifJamPertamaMobil : double
+    - tarifPerJamMobil : double
+    - tarifJamPertamaMotor : double
+    - tarifPerJamMotor : double
+    - totalPendapatan : double
+    - counterTiket : int
+    + GedungParkir(nama : String, t1Mobil : double, t2Mobil : double, t1Motor : double, t2Motor : double)
+    + tambahSlot(slot : SlotParkir) : void
+    + cariSlotTersedia(k : Kendaraan) : SlotParkir
+    + prosesMasuk(k : Kendaraan, jamMasuk : int) : KarcisParkir
+    + prosesKeluar(t : KarcisParkir, jam : int, metode : String, bayar : double) : boolean
+    + tampilkanStatusKapasitas() : void
+    + cetakStrukKeluar(tiket : KarcisParkir) : void
+    + getNamaGedung() : String
+    + getDaftarSlot() : List<SlotParkir>
+    + getRiwayatTransaksi() : List<KarcisParkir>
+    + getTotalPendapatan() : double
+}
+
+GedungParkir "1" *-- "1..*" SlotParkir : composition (daftarSlot)
+GedungParkir "1" *-- "0..*" KarcisParkir : composition (riwayatTransaksi)
+KarcisParkir "1..*" o-- "1" Kendaraan : aggregation (kendaraan)
+KarcisParkir "1..*" o-- "1" SlotParkir : aggregation (slot)
+SlotParkir "1" o-- "0..1" Kendaraan : associates (kendaraanParkir)
+
+@enduml

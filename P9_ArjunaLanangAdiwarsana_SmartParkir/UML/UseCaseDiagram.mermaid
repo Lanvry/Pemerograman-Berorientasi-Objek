@@ -1,0 +1,27 @@
+```mermaid
+graph LR
+    subgraph Subsystem ["«subsystem» Smart Parking System"]
+        UC1(["Check-In &<br/>Ambil Karcis Masuk"])
+        UC2(["Alokasi Slot Otomatis<br/>(Cari Slot Terdekat)"])
+        UC3(["Cek Lokasi &<br/>Ketersediaan Slot"])
+        UC4(["Hitung Tarif &<br/>Pembayaran Parkir"])
+        UC5(["Validasi Tiket Keluar<br/>(Check-Out Gate)"])
+        UC6(["Monitoring Status<br/>& Kuota Slot"])
+        UC7(["Maintenance Barrier<br/>Gate & Sensor Slot"])
+    end
+
+    Pengendara["Pengendara<br/>(Customer)"] --> UC1
+    Pengendara --> UC2
+    Pengendara --> UC3
+    Pengendara --> UC4
+    Pengendara --> UC5
+
+    Teknisi["Teknisi Parkir<br/>(Technician)"] --> UC6
+    Teknisi --> UC7
+
+    UC4 --- Bank["Bank / E-Money<br/>Gateway"]
+
+    UC4 --- Operator["Operator Parkir<br/>(Admin)"]
+    UC5 --- Operator
+    UC6 --- Operator
+```

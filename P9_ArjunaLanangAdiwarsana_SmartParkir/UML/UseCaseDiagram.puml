@@ -1,0 +1,37 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam monochrome true
+
+actor "Pengendara\n(Customer)" as Pengendara
+actor "Teknisi Parkir\n(Technician)" as Teknisi
+actor "Bank / E-Money\nGateway" as Bank
+actor "Operator Parkir\n(Admin)" as Operator
+
+rectangle "Smart Parking System" as Subsystem <<subsystem>> {
+    usecase "Check-In &\nAmbil Karcis Masuk" as UC1
+    usecase "Alokasi Slot Otomatis\n(Cari Slot Terdekat)" as UC2
+    usecase "Cek Lokasi &\nKetersediaan Slot" as UC3
+    usecase "Hitung Tarif &\nPembayaran Parkir" as UC4
+    usecase "Validasi Tiket Keluar\n(Check-Out Gate)" as UC5
+    usecase "Monitoring Status\n& Kuota Slot" as UC6
+    usecase "Maintenance Barrier\nGate & Sensor Slot" as UC7
+}
+
+Pengendara --> UC1
+Pengendara --> UC2
+Pengendara --> UC3
+Pengendara --> UC4
+Pengendara --> UC5
+
+Teknisi --> UC6
+Teknisi --> UC7
+
+UC4 <-- Bank
+
+UC4 <-- Operator
+UC5 <-- Operator
+UC6 <-- Operator
+
+@enduml

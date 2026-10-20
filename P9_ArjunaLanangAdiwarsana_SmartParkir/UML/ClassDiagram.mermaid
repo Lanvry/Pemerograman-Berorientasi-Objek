@@ -1,0 +1,87 @@
+```mermaid
+classDiagram
+    direction TB
+
+    class Kendaraan {
+        -String platNomor
+        -String tipe
+        -String merk
+        +Kendaraan(platNomor, tipe, merk)
+        +getPlatNomor() String
+        +getTipe() String
+        +getMerk() String
+        +isMobilListrik() boolean
+        +toString() String
+    }
+
+    class SlotParkir {
+        -String idSlot
+        -int lantai
+        -String tipeSlot
+        -boolean terisi
+        -Kendaraan kendaraanParkir
+        +SlotParkir(idSlot, lantai, tipeSlot)
+        +cocokUntuk(Kendaraan k) boolean
+        +isiSlot(Kendaraan k) boolean
+        +kosongkanSlot() Kendaraan
+        +getIdSlot() String
+        +getLantai() int
+        +getTipeSlot() String
+        +isTerisi() boolean
+        +getKendaraanParkir() Kendaraan
+        +toString() String
+    }
+
+    class KarcisParkir {
+        -String nomorTiket
+        -Kendaraan kendaraan
+        -SlotParkir slot
+        -int jamMasuk
+        -int jamKeluar
+        -boolean sudahDibayar
+        -double totalBiaya
+        -String metodePembayaran
+        +KarcisParkir(nomorTiket, kendaraan, slot, jamMasuk)
+        +hitungDurasi(int jamKeluarAktual) int
+        +hitungTarif(int jamKeluar, double tarif1, double tarif2) double
+        +prosesPembayaran(String metode, double uangBayar) boolean
+        +getNomorTiket() String
+        +getKendaraan() Kendaraan
+        +getSlot() SlotParkir
+        +getJamMasuk() int
+        +getJamKeluar() int
+        +isSudahDibayar() boolean
+        +getTotalBiaya() double
+        +getMetodePembayaran() String
+        +toString() String
+    }
+
+    class GedungParkir {
+        -String namaGedung
+        -List~SlotParkir~ daftarSlot
+        -List~KarcisParkir~ riwayatTransaksi
+        -double tarifJamPertamaMobil
+        -double tarifPerJamMobil
+        -double tarifJamPertamaMotor
+        -double tarifPerJamMotor
+        -double totalPendapatan
+        -int counterTiket
+        +GedungParkir(nama, t1Mobil, t2Mobil, t1Motor, t2Motor)
+        +tambahSlot(SlotParkir slot) void
+        +cariSlotTersedia(Kendaraan k) SlotParkir
+        +prosesMasuk(Kendaraan k, int jamMasuk) KarcisParkir
+        +prosesKeluar(KarcisParkir t, int jam, String metode, double bayar) boolean
+        +tampilkanStatusKapasitas() void
+        +cetakStrukKeluar(KarcisParkir tiket) void
+        +getNamaGedung() String
+        +getDaftarSlot() List~SlotParkir~
+        +getRiwayatTransaksi() List~KarcisParkir~
+        +getTotalPendapatan() double
+    }
+
+    GedungParkir "1" *-- "1..*" SlotParkir : Komposisi (daftarSlot)
+    GedungParkir "1" *-- "0..*" KarcisParkir : Komposisi (riwayatTransaksi)
+    KarcisParkir "1..*" o-- "1" Kendaraan : Agregasi (kendaraan)
+    KarcisParkir "1..*" o-- "1" SlotParkir : Agregasi (slot)
+    SlotParkir "1" o-- "0..1" Kendaraan : Asosiasi (kendaraanParkir)
+```
