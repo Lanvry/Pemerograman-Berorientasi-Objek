@@ -1,0 +1,8 @@
+# ===================================================================
+# SMARTPARKIR - TEMPLATE KONFIGURASI AI VISION (CONTOH)
+# ===================================================================
+# Salin file ini menjadi 'ai_config.properties' lalu isi API key Anda.
+
+ai.endpoint=https://pi.leopard-gila.ts.net/v1/chat/completions
+ai.api_key=YOUR_API_KEY_HERE
+ai.model=orion

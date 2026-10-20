@@ -1,0 +1,17 @@
+# ===================================================================
+# KEAMANAN KREDENSIAL & RAHASIA (JANGAN DI-COMMIT KE GIT)
+# ===================================================================
+ai_config.properties
+.env
+.env.*
+*.key
+*.secret
+
+# Build outputs & bytecodes
+bin/
+*.class
+
+# macOS & IDE
+.DS_Store
+.idea/
+*.iml
