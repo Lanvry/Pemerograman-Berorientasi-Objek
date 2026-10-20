@@ -526,13 +526,12 @@ public class AdminGUI extends JFrame {
         return p;
     }
 
-    private JPanel buildSidebar() {
+    private JComponent buildSidebar() {
         JPanel side = new JPanel();
         side.setLayout(new BoxLayout(side, BoxLayout.Y_AXIS));
-        side.setPreferredSize(new Dimension(460, 820));
         side.setOpaque(false);
         
-        // 1. CCTV CARD DI DASHBOARD UNTUK PEMANTAUAN LANGSUNG
+        // 1. CCTV CARD DI DASHBOARD UNTUK PEMANTAUAN LANGSUNG (KOMPAK)
         side.add(buildCCTVCard());
         side.add(Box.createVerticalStrut(8));
 
@@ -542,22 +541,33 @@ public class AdminGUI extends JFrame {
 
         // 3. LOG TRANSAKSI
         side.add(buildLogCard());
-        return side;
+
+        JScrollPane scroll = new JScrollPane(side);
+        scroll.setPreferredSize(new Dimension(460, 780));
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.getVerticalScrollBar().setUnitIncrement(14);
+        return scroll;
     }
 
     /**
-     * Card CCTV Kamera Live tersemat langsung di dashboard untuk pemantauan realtime
+     * Card CCTV Kamera Live tersemat langsung di dashboard untuk pemantauan realtime (Format Kompak)
      */
     private JPanel buildCCTVCard() {
-        JPanel card = new JPanel(new BorderLayout(0, 6));
+        JPanel card = new JPanel(new BorderLayout(0, 4));
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(8, 10, 8, 10)));
+            new EmptyBorder(6, 10, 6, 10)));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 205));
+        card.setPreferredSize(new Dimension(438, 205));
 
         JPanel top = new JPanel(new BorderLayout());
         top.setOpaque(false);
-        JLabel title = sectionTitle("CCTV Pemantauan Gerbang Masuk (Live AI)");
+        JLabel title = sectionTitle("CCTV Gerbang Masuk (Live AI)");
         lblCCTVLiveBadge = new JLabel("🔴 STREAMING AKTIF");
         lblCCTVLiveBadge.setFont(new Font("Segoe UI", Font.BOLD, 9));
         lblCCTVLiveBadge.setForeground(GREEN);
@@ -566,7 +576,9 @@ public class AdminGUI extends JFrame {
         card.add(top, BorderLayout.NORTH);
 
         cctvScreen = new JLabel("", SwingConstants.CENTER);
-        cctvScreen.setPreferredSize(new Dimension(438, 205));
+        cctvScreen.setPreferredSize(new Dimension(420, 130));
+        cctvScreen.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
+        cctvScreen.setMinimumSize(new Dimension(320, 130));
         cctvScreen.setOpaque(true);
         cctvScreen.setBackground(Color.BLACK);
         cctvScreen.setBorder(BorderFactory.createLineBorder(BORDER, 1));
@@ -578,22 +590,22 @@ public class AdminGUI extends JFrame {
         lblCCTVStatus = new JLabel("<html><span style='color:#38bdf8;font-size:10px;'>🟢 Sensor aktif: Menunggu kendaraan di gerbang masuk...</span></html>");
         bot.add(lblCCTVStatus, BorderLayout.NORTH);
 
-        JPanel actions = new JPanel(new GridLayout(1, 3, 6, 0));
+        JPanel actions = new JPanel(new GridLayout(1, 3, 4, 0));
         actions.setOpaque(false);
 
-        JButton btnSimulate = button("🚗 Datangkan Xenia", BLUE, WHITE);
-        btnSimulate.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        btnSimulate.setBorder(new EmptyBorder(5, 6, 5, 6));
+        JButton btnSimulate = button("🚗 Test Xenia", BLUE, WHITE);
+        btnSimulate.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        btnSimulate.setBorder(new EmptyBorder(4, 4, 4, 4));
         btnSimulate.addActionListener(e -> simulateCarArrival());
 
         btnCCTVToggle = button("⏹ Jeda Video", CARD_BG, T1);
-        btnCCTVToggle.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        btnCCTVToggle.setBorder(new EmptyBorder(5, 6, 5, 6));
+        btnCCTVToggle.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        btnCCTVToggle.setBorder(new EmptyBorder(4, 4, 4, 4));
         btnCCTVToggle.addActionListener(e -> toggleCCTVStreaming());
 
         JButton btnSettings = button("⚙️ Setting AI", CARD_BG, T1);
-        btnSettings.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        btnSettings.setBorder(new EmptyBorder(5, 6, 5, 6));
+        btnSettings.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        btnSettings.setBorder(new EmptyBorder(4, 4, 4, 4));
         btnSettings.addActionListener(e -> openCameraScannerDialog());
 
         actions.add(btnSimulate);
@@ -756,8 +768,8 @@ public class AdminGUI extends JFrame {
 
     private void drawCCTVScreen(BufferedImage frame, boolean isDetected, String hudStatus) {
         if (cctvScreen == null) return;
-        int targetW = cctvScreen.getWidth() > 0 ? cctvScreen.getWidth() : 438;
-        int targetH = cctvScreen.getHeight() > 0 ? cctvScreen.getHeight() : 205;
+        int targetW = cctvScreen.getWidth() > 0 ? cctvScreen.getWidth() : 420;
+        int targetH = 130; // Kunci tinggi kamera 130px agar presisi, tajam, dan tidak mendominasi layar
 
         BufferedImage combined = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2 = combined.createGraphics();
@@ -776,16 +788,16 @@ public class AdminGUI extends JFrame {
             g2.fillRect(0, 0, targetW, targetH);
         }
 
-        // Bounding Scanner Reticle
-        int rw = targetW - 140, rh = targetH - 60;
+        // Bounding Scanner Reticle Kompak
+        int rw = Math.min(targetW - 80, 220), rh = 76;
         int rx = (targetW - rw) / 2;
-        int ry = (targetH - rh) / 2;
+        int ry = (targetH - rh) / 2 - 2;
 
         Color hudColor = isDetected ? new Color(34, 197, 94) : new Color(59, 130, 246);
         g2.setColor(hudColor);
-        g2.setStroke(new BasicStroke(2f));
+        g2.setStroke(new BasicStroke(1.8f));
 
-        int cLen = 16;
+        int cLen = 12;
         g2.drawLine(rx, ry, rx + cLen, ry);
         g2.drawLine(rx, ry, rx, ry + cLen);
         g2.drawLine(rx + rw, ry, rx + rw - cLen, ry);
@@ -799,15 +811,16 @@ public class AdminGUI extends JFrame {
         g2.fillRect(rx, ry, rw, rh);
 
         // Header Text
-        g2.setFont(new Font("Segoe UI", Font.BOLD, 9));
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 8));
         g2.setColor(Color.WHITE);
-        g2.drawString("CAM-01 • GERBANG MASUK REALTIME", 10, 16);
+        g2.drawString("CAM-01 • GERBANG MASUK REALTIME", 8, 14);
 
         // Status Badge at Bottom
         g2.setColor(new Color(15, 23, 42, 210));
-        g2.fillRoundRect(rx, ry + rh - 20, rw, 18, 4, 4);
+        g2.fillRoundRect(rx, ry + rh - 18, rw, 16, 4, 4);
         g2.setColor(hudColor);
-        g2.drawString(hudStatus != null ? hudStatus : "MEMANTAU GERBANG MASUK...", rx + 8, ry + rh - 7);
+        g2.setFont(new Font("Segoe UI", Font.BOLD, 8));
+        g2.drawString(hudStatus != null ? hudStatus : "MEMANTAU GERBANG MASUK...", rx + 6, ry + rh - 6);
 
         g2.dispose();
         cctvScreen.setIcon(new ImageIcon(combined));
@@ -849,6 +862,8 @@ public class AdminGUI extends JFrame {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(CARD_BG);
         card.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 300));
+        card.setPreferredSize(new Dimension(440, 290));
 
         lblNotice = new JLabel("<html><span style='color:#94a3b8;'>Klik kendaraan di denah untuk check-out, atau gunakan tab Check-In.</span></html>");
         lblNotice.setFont(new Font("Segoe UI", Font.PLAIN, 10));
@@ -977,6 +992,8 @@ public class AdminGUI extends JFrame {
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER, 1),
             new EmptyBorder(8, 12, 10, 12)));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 200));
+        card.setPreferredSize(new Dimension(440, 190));
 
         card.add(sectionTitle("Riwayat Transaksi"), BorderLayout.NORTH);
 
