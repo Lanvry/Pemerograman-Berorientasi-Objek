@@ -39,11 +39,13 @@ public class GedungParkir {
         this.tarifPerJamMotor = tarifPerJamMotor;
         this.totalPendapatan = 0.0;
         this.counterTiket = 1;
+        DatabaseManager.inisialisasiDatabase();
     }
 
     public void tambahSlot(SlotParkir slot) {
         if (slot != null) {
             daftarSlot.add(slot);
+            DatabaseManager.updateStatusSlot(slot);
         }
     }
 
@@ -120,6 +122,11 @@ public class GedungParkir {
         KarcisParkir tiket = new KarcisParkir(noTiket, k, slotTersedia, jamMasuk);
         riwayatTransaksi.add(tiket);
 
+        // Persistensi ke Database MySQL
+        DatabaseManager.simpanKendaraan(k);
+        DatabaseManager.updateStatusSlot(slotTersedia);
+        DatabaseManager.simpanKarcisMasuk(tiket);
+
         System.out.printf("[CHECK-IN SUKSES] %s berhasil masuk.%n", k);
         System.out.printf(" >> Tiket: %s | Alokasi Slot: %s (Lantai %d)%n",
                 tiket.getNomorTiket(), slotTersedia.getIdSlot(), slotTersedia.getLantai());
@@ -152,6 +159,10 @@ public class GedungParkir {
 
         // Akumulasi kas pendapatan
         this.totalPendapatan += tiket.getTotalBiaya();
+
+        // Persistensi ke Database MySQL
+        DatabaseManager.updateStatusSlot(slot);
+        DatabaseManager.updateKarcisKeluar(tiket);
 
         System.out.printf("[CHECK-OUT SUKSES] Kendaraan %s telah keluar.%n", tiket.getKendaraan().getPlatNomor());
         System.out.printf(" >> Slot %s sekarang KOSONG kembali dan siap digunakan.%n", slot.getIdSlot());

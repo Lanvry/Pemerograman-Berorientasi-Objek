@@ -1,5 +1,6 @@
 import model.AIVisionService;
 import model.AIVisionService.DetectionResult;
+import model.DatabaseManager;
 import model.GedungParkir;
 import model.KarcisParkir;
 import model.Kendaraan;
@@ -55,7 +56,7 @@ public class AdminGUI extends JFrame {
     private KarcisParkir selectedTiket;
 
     private JPanel blueprintContainer;
-    private JLabel lblTersedia, lblTerisi, lblPendapatan;
+    private JLabel lblTersedia, lblTerisi, lblPendapatan, lblDBStatus;
     private DefaultTableModel logModel;
 
     private JTextField txtTiket, txtJamKeluar, txtUangBayar;
@@ -199,9 +200,11 @@ public class AdminGUI extends JFrame {
         lblTersedia   = pill("TERSEDIA",  "-", GREEN);
         lblTerisi     = pill("TERISI",    "-", RED);
         lblPendapatan = pill("KAS MASUK", "-", AMBER);
+        lblDBStatus   = pill("DATABASE",  DatabaseManager.isConnected() ? "MySQL ONLINE" : "OFFLINE", DatabaseManager.isConnected() ? TEAL : RED);
         pills.add(lblTersedia);
         pills.add(lblTerisi);
         pills.add(lblPendapatan);
+        pills.add(lblDBStatus);
 
         h.add(brand, BorderLayout.WEST);
         h.add(pills,  BorderLayout.EAST);
@@ -1244,6 +1247,10 @@ public class AdminGUI extends JFrame {
         lblTersedia.setText(fmtPill("TERSEDIA", String.valueOf(tersedia), GREEN));
         lblTerisi.setText(fmtPill("TERISI", String.valueOf(terisi), RED));
         lblPendapatan.setText(fmtPill("KAS MASUK", rupiah.format(gedung.getTotalPendapatan()), AMBER));
+        if (lblDBStatus != null) {
+            boolean connected = DatabaseManager.isConnected();
+            lblDBStatus.setText(fmtPill("DATABASE", connected ? "MySQL ONLINE" : "OFFLINE", connected ? TEAL : RED));
+        }
 
         logModel.setRowCount(0);
         for (KarcisParkir t : gedung.getRiwayatTransaksi()) {

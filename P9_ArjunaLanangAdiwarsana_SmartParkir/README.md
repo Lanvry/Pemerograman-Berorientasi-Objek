@@ -177,12 +177,15 @@ Jalankan perintah berikut melalui terminal:
 # 1. Masuk ke folder proyek
 cd P9_ArjunaLanangAdiwarsana_SmartParkir
 
-# 2. Kompilasi seluruh class Java ke folder bin
+# 2. Kompilasi seluruh class Java bersama JDBC Driver ke folder bin
 mkdir -p bin
-javac -d bin SourceCode/model/*.java SourceCode/Main.java
+javac -cp "lib/mysql-connector-j.jar" -d bin SourceCode/model/*.java SourceCode/Main.java SourceCode/AdminGUI.java
 
-# 3. Jalankan pengujian driver Main
-java -cp bin Main
+# 3. Jalankan pengujian driver Main (Console Skenario Praktikum)
+java -cp "bin:lib/mysql-connector-j.jar" Main
+
+# 4. Atau jalankan antarmuka Desktop GUI (Admin Dashboard)
+java -cp "bin:lib/mysql-connector-j.jar" AdminGUI
 ```
 
 ---
