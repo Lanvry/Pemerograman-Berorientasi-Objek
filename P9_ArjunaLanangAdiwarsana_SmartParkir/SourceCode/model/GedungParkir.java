@@ -90,6 +90,45 @@ public class GedungParkir {
         return null;
     }
 
+    public KarcisParkir cariTiketAktifDenganPlat(String plat) {
+        if (plat == null || plat.trim().isEmpty()) return null;
+        String p = plat.replaceAll("\\s+", "").toUpperCase();
+        for (int i = riwayatTransaksi.size() - 1; i >= 0; i--) {
+            KarcisParkir t = riwayatTransaksi.get(i);
+            if (!t.isSudahDibayar() && t.getKendaraan() != null) {
+                String platTiket = t.getKendaraan().getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+                if (platTiket.equals(p)) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    public KarcisParkir cariTiketAktifDenganSlot(String idSlot) {
+        if (idSlot == null || idSlot.trim().isEmpty()) return null;
+        String s = idSlot.trim().toUpperCase();
+        for (int i = riwayatTransaksi.size() - 1; i >= 0; i--) {
+            KarcisParkir t = riwayatTransaksi.get(i);
+            if (!t.isSudahDibayar() && t.getSlot() != null) {
+                if (t.getSlot().getIdSlot().equalsIgnoreCase(s)) {
+                    return t;
+                }
+            }
+        }
+        return null;
+    }
+
+    public List<KarcisParkir> getDaftarTiketAktif() {
+        List<KarcisParkir> aktif = new ArrayList<>();
+        for (KarcisParkir t : riwayatTransaksi) {
+            if (!t.isSudahDibayar()) {
+                aktif.add(t);
+            }
+        }
+        return aktif;
+    }
+
     public KarcisParkir prosesMasuk(Kendaraan k, int jamMasuk) {
         if (k == null) {
             System.out.println("[CHECK-IN GAGAL] Data kendaraan tidak valid.");
