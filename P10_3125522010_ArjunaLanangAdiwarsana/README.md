@@ -10,6 +10,10 @@
 - **Dosen Pengampu:** Nirwana Haidar Hari, S.Pd., M.Kom.
 - **Mata Kuliah:** Praktikum Pemrograman Berorientasi Obyek (PBO)
 - **Topik Pembelajaran:** *Robustness*, *Exception Handling*, *State Validation*, dan *Custom Domain Exceptions*
+- **Dokumen Laporan PDF Resmi:** 
+  - [📄 `README.pdf`](README.pdf)
+  - [📄 `Laporan_P10_3125522010_ArjunaLanangAdiwarsana.pdf`](Laporan_P10_3125522010_ArjunaLanangAdiwarsana.pdf)
+  - [🐍 `generate_pdf.py`](generate_pdf.py)
 
 ---
 
@@ -142,6 +146,8 @@ classDiagram
 
 ### 4.3 Hasil Eksekusi Program (`Main.java`)
 Program berhasil dikompilasi dan dijalankan dengan output sebagai berikut:
+
+![Screenshot Terminal Execution](terminal_screenshot.png)
 
 ```text
 ==========================================================================
