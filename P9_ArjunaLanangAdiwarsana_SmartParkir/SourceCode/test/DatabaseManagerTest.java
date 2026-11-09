@@ -6,9 +6,12 @@ public class DatabaseManagerTest {
     public static void main(String[] args) {
         DatabaseManager.inisialisasiDatabase();
 
-        Kendaraan k = new Kendaraan("D 9999 EV", "MOBIL_LISTRIK", "Hyundai Ioniq");
+        String plate = "D " + (1000 + (int)(Math.random() * 8999)) + " EV";
+        String ticketId = "TKT-TEST-" + System.currentTimeMillis();
+
+        Kendaraan k = new Kendaraan(plate, "MOBIL_LISTRIK", "Hyundai Ioniq");
         SlotParkir s = new SlotParkir("EV-L1-01", 1, "MOBIL_LISTRIK");
-        KarcisParkir t = new KarcisParkir("TKT-TEST-99", k, s, 10);
+        KarcisParkir t = new KarcisParkir(ticketId, k, s, 10);
 
         // 1. Simpan transaksi masuk
         boolean saved = DatabaseManager.simpanTransaksiMasuk(t, "ANPR_TICKETLESS");
@@ -17,19 +20,19 @@ public class DatabaseManagerTest {
         }
 
         // 2. Cari tiket aktif by plat
-        KarcisParkir found = DatabaseManager.cariTiketAktifByPlat("D 9999 EV");
-        if (found == null || !found.getNomorTiket().equals("TKT-TEST-99")) {
+        KarcisParkir found = DatabaseManager.cariTiketAktifByPlat(plate);
+        if (found == null || !found.getNomorTiket().equals(ticketId)) {
             throw new AssertionError("Should find active ticket by plate");
         }
 
         // 3. Update pelunasan
-        boolean settled = DatabaseManager.updatePelunasanTiket("TKT-TEST-99", 12, 8000.0, "QRIS_MIDTRANS");
+        boolean settled = DatabaseManager.updatePelunasanTiket(ticketId, 12, 8000.0, "QRIS_MIDTRANS");
         if (!settled) {
             throw new AssertionError("Ticket settlement should succeed");
         }
 
         // 4. Setelah lunas, tiket tidak boleh muncul sebagai tiket aktif
-        KarcisParkir activeAfterPaid = DatabaseManager.cariTiketAktifByPlat("D 9999 EV");
+        KarcisParkir activeAfterPaid = DatabaseManager.cariTiketAktifByPlat(plate);
         if (activeAfterPaid != null) {
             throw new AssertionError("Settled ticket must no longer appear as active");
         }

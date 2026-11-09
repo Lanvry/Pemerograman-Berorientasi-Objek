@@ -209,7 +209,8 @@ public class DatabaseManager {
         }
         String sql = "INSERT INTO karcis_parkir (nomor_tiket, plat_nomor, kode_slot, jam_masuk, sudah_dibayar) " +
                      "VALUES (?, ?, ?, ?, ?) " +
-                     "ON DUPLICATE KEY UPDATE jam_masuk = VALUES(jam_masuk)";
+                     "ON DUPLICATE KEY UPDATE jam_masuk = VALUES(jam_masuk), sudah_dibayar = VALUES(sudah_dibayar), " +
+                     "jam_keluar = NULL, total_biaya = 0";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, tiket.getNomorTiket());
             ps.setString(2, tiket.getKendaraan() != null ? tiket.getKendaraan().getPlatNomor() : "-");
@@ -296,7 +297,8 @@ public class DatabaseManager {
         if (tiket == null) return;
         String sql = "INSERT INTO karcis_parkir (nomor_tiket, plat_nomor, kode_slot, jam_masuk, sudah_dibayar) " +
                      "VALUES (?, ?, ?, ?, ?) " +
-                     "ON DUPLICATE KEY UPDATE jam_masuk = VALUES(jam_masuk)";
+                     "ON DUPLICATE KEY UPDATE jam_masuk = VALUES(jam_masuk), sudah_dibayar = VALUES(sudah_dibayar), " +
+                     "jam_keluar = NULL, total_biaya = 0";
         try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, tiket.getNomorTiket());
             ps.setString(2, tiket.getKendaraan().getPlatNomor());
