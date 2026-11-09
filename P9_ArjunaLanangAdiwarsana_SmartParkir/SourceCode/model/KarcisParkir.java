@@ -65,7 +65,7 @@ public class KarcisParkir {
         return this.totalBiaya;
     }
 
-    public boolean prosesPembayaran(String metode, double uangBayar) throws PembayaranKurangException {
+    public boolean prosesPembayaran(String metode, double uangBayar) {
         if (this.sudahDibayar) {
             System.out.println("[PERINGATAN] Tiket " + nomorTiket + " sudah pernah dibayar sebelumnya.");
             return true;
@@ -73,7 +73,7 @@ public class KarcisParkir {
         if (uangBayar < this.totalBiaya) {
             System.out.printf("[PEMBAYARAN DITOLAK] Uang tidak mencukupi! Tagihan: Rp %,.0f, Dibayar: Rp %,.0f%n",
                     totalBiaya, uangBayar);
-            throw new PembayaranKurangException(totalBiaya, uangBayar);
+            return false;
         }
 
         this.sudahDibayar = true;

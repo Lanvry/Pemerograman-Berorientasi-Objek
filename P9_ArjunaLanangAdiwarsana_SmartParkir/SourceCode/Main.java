@@ -52,74 +52,31 @@ public class Main {
         Kendaraan k2 = new Kendaraan("L 5566 EV", "MOBIL_LISTRIK", "Hyundai Ioniq 5");
         Kendaraan k3 = new Kendaraan("M 9988 XYZ", "MOTOR", "Honda Vario");
 
-        KarcisParkir tiket1 = null;
-        KarcisParkir tiket2 = null;
-        KarcisParkir tiket3 = null;
-
-        try {
-            tiket1 = mallPark.prosesMasuk(k1, 8);  // Masuk jam 08:00
-            tiket2 = mallPark.prosesMasuk(k2, 9);  // Masuk jam 09:00
-            tiket3 = mallPark.prosesMasuk(k3, 10); // Masuk jam 10:00
-        } catch (Exception ex) {
-            System.err.println("[ERROR CHECK-IN] " + ex.getMessage());
-        }
+        // Kendaraan masuk gate
+        KarcisParkir tiket1 = mallPark.prosesMasuk(k1, 8);  // Masuk jam 08:00
+        KarcisParkir tiket2 = mallPark.prosesMasuk(k2, 9);  // Masuk jam 09:00
+        KarcisParkir tiket3 = mallPark.prosesMasuk(k3, 10); // Masuk jam 10:00
         System.out.println();
 
         mallPark.tampilkanStatusKapasitas();
 
         // --------------------------------------------------------------------
-        // SKENARIO 3: UJI ENKAPSULASI, VALIDASI STATE, & PENANGANAN EXCEPTION
+        // SKENARIO 3: UJI ENKAPSULASI, VALIDASI STATE, & PROTEKSI OVER-CAPACITY
         // --------------------------------------------------------------------
-        System.out.println(">>> [SKENARIO 3] Uji Enkapsulasi, Validasi State & Custom Exception");
-        System.out.println("a. Mencoba memarkir Mobil Listrik kedua (Slot EV hanya 1, dialihkan cerdas ke Lt 2):");
+        System.out.println(">>> [SKENARIO 3] Uji Enkapsulasi & Proteksi Kapasitas Penuh");
+        System.out.println("a. Mencoba memarkir Mobil Listrik kedua (Slot EV hanya ada 1 dan sudah terisi):");
         Kendaraan k4_ev = new Kendaraan("N 7788 EV", "MOBIL_LISTRIK", "Wuling Binguo");
-        try {
-            KarcisParkir tiket4 = mallPark.prosesMasuk(k4_ev, 10);
-        } catch (Exception ex) {
-            System.out.println("[DITOLAK] " + ex.getMessage());
-        }
+        // Karena k4 adalah EV, jika slot EV penuh, sistem cerdas akan mencarikan slot Mobil reguler di Lt 2!
+        KarcisParkir tiket4 = mallPark.prosesMasuk(k4_ev, 10);
 
-        System.out.println("\nb. Mencoba check-in kendaraan yang sudah terparkir di dalam gedung (Uji KendaraanSudahParkirException):");
-        try {
-            mallPark.prosesMasuk(k1, 11);
-        } catch (model.KendaraanSudahParkirException ex) {
-            System.out.println("[TERTANGKAP KendaraanSudahParkirException] " + ex.getMessage());
-        } catch (Exception ex) {
-            System.out.println("[DITOLAK] " + ex.getMessage());
-        }
-
-        System.out.println("\nc. Mencoba memarkir Mobil ketiga saat slot habis (Uji KapasitasPenuhException):");
+        System.out.println("\nb. Mencoba memarkir Mobil ketiga (Slot Mobil di Lantai 1 & 2 sekarang sudah habis):");
         Kendaraan k5_mobil = new Kendaraan("D 9999 MOB", "MOBIL", "Mitsubishi Pajero");
-        try {
-            KarcisParkir tiketGagal = mallPark.prosesMasuk(k5_mobil, 11);
-        } catch (model.KapasitasPenuhException ex) {
-            System.out.println("[TERTANGKAP KapasitasPenuhException] " + ex.getMessage());
-        } catch (Exception ex) {
-            System.out.println("[DITOLAK] " + ex.getMessage());
-        }
+        KarcisParkir tiketGagal = mallPark.prosesMasuk(k5_mobil, 11); // Harusnya ditolak (Parkir Penuh)
 
-        System.out.println("\nd. Mencoba check-out dengan pembayaran kurang dari tagihan (Uji PembayaranKurangException):");
+        System.out.println("\nc. Mencoba check-out dengan pembayaran kurang dari tagihan:");
         if (tiket1 != null) {
-            try {
-                // Jam masuk 08:00, keluar 12:00 (4 jam -> Rp 14.000). Bayar cuma Rp 10.000
-                mallPark.prosesKeluar(tiket1, 12, "CASH", 10000.0);
-            } catch (model.PembayaranKurangException ex) {
-                System.out.println("[TERTANGKAP PembayaranKurangException] " + ex.getMessage());
-                System.out.printf(" >> Kekurangan yang harus dibayar: Rp %,.0f%n", ex.getKekurangan());
-            } catch (Exception ex) {
-                System.out.println("[DITOLAK] " + ex.getMessage());
-            } finally {
-                System.out.println(" >> State Check: Slot MBL-L1-01 status terisi = " + tiket1.getSlot().isTerisi() + " (State Tidak Rusak)");
-            }
-        }
-
-        System.out.println("\ne. Mencoba check-out plat yang tidak ada di parkir aktif (Uji TiketTidakDitemukanException):");
-        try {
-            mallPark.prosesKeluarDenganPlat("B 9999 HILANG", 12, "CASH", 50000.0);
-        } catch (model.TiketTidakDitemukanException ex) {
-            System.out.println("[TERTANGKAP TiketTidakDitemukanException] " + ex.getMessage());
-        } catch (Exception ex) {
-            System.out.println("[DITOLAK] " + ex.getMessage());
+            // Jam masuk 08:00, keluar 12:00 (4 jam -> 5.000 + 3x3.000 = Rp 14.000)
+            mallPark.prosesKeluar(tiket1, 12, "CASH", 10000.0); // Uang cuma Rp 10.000
         }
         System.out.println();
 
@@ -128,13 +85,9 @@ public class Main {
         // --------------------------------------------------------------------
         System.out.println(">>> [SKENARIO 4] Check-Out Sukses Kendaraan Reguler (Mobil k1)");
         if (tiket1 != null) {
-            try {
-                boolean suksesKeluar = mallPark.prosesKeluar(tiket1, 12, "E_MONEY", 14000.0);
-                if (suksesKeluar) {
-                    mallPark.cetakStrukKeluar(tiket1);
-                }
-            } catch (Exception ex) {
-                System.out.println("[ERROR CHECK-OUT] " + ex.getMessage());
+            boolean suksesKeluar = mallPark.prosesKeluar(tiket1, 12, "E_MONEY", 14000.0);
+            if (suksesKeluar) {
+                mallPark.cetakStrukKeluar(tiket1);
             }
         }
 
@@ -143,13 +96,12 @@ public class Main {
         // --------------------------------------------------------------------
         System.out.println(">>> [SKENARIO 5] Check-Out Mobil Listrik EV (Diskon Insentif Hijau 20%)");
         if (tiket2 != null) {
-            try {
-                boolean suksesEV = mallPark.prosesKeluar(tiket2, 14, "QRIS", 15000.0);
-                if (suksesEV) {
-                    mallPark.cetakStrukKeluar(tiket2);
-                }
-            } catch (Exception ex) {
-                System.out.println("[ERROR CHECK-OUT EV] " + ex.getMessage());
+            // Masuk jam 09:00, keluar 14:00 (5 jam)
+            // Tarif normal: 5.000 + 4x3.000 = Rp 17.000.
+            // Diskon 20% EV: 17.000 * 0.8 = Rp 13.600!
+            boolean suksesEV = mallPark.prosesKeluar(tiket2, 14, "QRIS", 15000.0);
+            if (suksesEV) {
+                mallPark.cetakStrukKeluar(tiket2);
             }
         }
 

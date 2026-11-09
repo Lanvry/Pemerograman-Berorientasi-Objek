@@ -46,3 +46,4 @@
   - [ ] Muat 8 bab resmi: Tujuan, Teori, Studi Kasus Produk, Langkah Praktikum, Implementasi Proyek SmartParkir, Luaran & Tabel Pengujian Input/Expected/Actual/State, Penilaian, dan Jawaban Pertanyaan Evaluasi
   - [ ] Tambahkan diagram Mermaid class diagram dan sequence diagram exception handling
   - [ ] Perbarui `README.md` di `Project Akhir Smart Parkir` untuk mencantumkan dokumentasi arsitektur exception handling
+

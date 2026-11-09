@@ -123,7 +123,7 @@ public class GedungParkir {
         return tiket;
     }
 
-    public KarcisParkir prosesMasukEmergency(String tipeKendaraan, int jamMasuk) throws KapasitasPenuhException {
+    public KarcisParkir prosesMasukEmergency(String tipeKendaraan, int jamMasuk) {
         String tipe = (tipeKendaraan != null && !tipeKendaraan.trim().isEmpty()) ? tipeKendaraan.toUpperCase() : "MOBIL";
         counterTiket++;
         String emgPlate = String.format("EMG-%04d", counterTiket);
@@ -132,7 +132,7 @@ public class GedungParkir {
         SlotParkir slotTersedia = cariSlotTersedia(kEmg);
         if (slotTersedia == null) {
             System.out.println("[KAPASITAS PENUH] Tidak ada slot tersedia untuk tiket darurat!");
-            throw new KapasitasPenuhException(tipe);
+            return null;
         }
 
         slotTersedia.isiSlot(kEmg);
@@ -228,9 +228,10 @@ public class GedungParkir {
         return aktif;
     }
 
-    public KarcisParkir prosesMasuk(Kendaraan k, int jamMasuk) throws KapasitasPenuhException, KendaraanSudahParkirException {
+    public KarcisParkir prosesMasuk(Kendaraan k, int jamMasuk) {
         if (k == null) {
-            throw new IllegalArgumentException("Data kendaraan tidak boleh null!");
+            System.out.println("[CHECK-IN GAGAL] Data kendaraan tidak valid.");
+            return null;
         }
 
         // Cegah duplikasi: Cek apakah kendaraan dengan plat yang sama sudah ada di dalam gedung
@@ -238,13 +239,13 @@ public class GedungParkir {
         if (slotSudahAda != null) {
             System.out.printf("[CHECK-IN DITOLAK] Kendaraan plat %s sudah terparkir di slot %s!%n",
                 k.getPlatNomor(), slotSudahAda.getIdSlot());
-            throw new KendaraanSudahParkirException(k.getPlatNomor(), slotSudahAda.getIdSlot());
+            return null;
         }
 
         SlotParkir slotTersedia = cariSlotTersedia(k);
         if (slotTersedia == null) {
             System.out.printf("[PARKIR PENUH] Tidak ada slot kosong yang tersedia untuk kendaraan %s!%n", k);
-            throw new KapasitasPenuhException(k.getTipe());
+            return null;
         }
 
         // Isi slot secara fisik
@@ -270,15 +271,15 @@ public class GedungParkir {
         return tiket;
     }
 
-    public boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, String metode, double uangBayar) throws TiketTidakDitemukanException, PembayaranKurangException {
+    public boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, String metode, double uangBayar) {
         if (tiket == null) {
             System.out.println("[CHECK-OUT GAGAL] Tiket parkir tidak ditemukan.");
-            throw new TiketTidakDitemukanException("Tiket null");
+            return false;
         }
 
         if (tiket.isSudahDibayar()) {
             System.out.printf("[CHECK-OUT DITOLAK] Tiket %s sudah lunas/keluar sebelumnya.%n", tiket.getNomorTiket());
-            throw new TiketTidakDitemukanException("Tiket " + tiket.getNomorTiket() + " sudah diselesaikan sebelumnya.");
+            return false;
         }
 
         // Tentukan tarif dasar berdasarkan jenis kendaraan
@@ -288,7 +289,7 @@ public class GedungParkir {
         // Hitung total tagihan
         tiket.hitungTarif(jamKeluar, tarifPertama, tarifBerikutnya);
 
-        // Proses pembayaran (melempar PembayaranKurangException jika nominal kurang)
+        // Proses pembayaran
         boolean lunas = tiket.prosesPembayaran(metode, uangBayar);
         if (!lunas) {
             System.out.println("[GATE TETAP TERTUTUP] Pembayaran belum selesai. Portal keluar tidak dapat dibuka.");
@@ -313,14 +314,6 @@ public class GedungParkir {
             System.out.printf(" >> Slot %s sekarang KOSONG kembali dan siap digunakan.%n", slot.getIdSlot());
         }
         return true;
-    }
-
-    public boolean prosesKeluarDenganPlat(String plat, int jamKeluar, String metode, double uangBayar) throws TiketTidakDitemukanException, PembayaranKurangException {
-        KarcisParkir tiket = cariTiketAktifDenganPlat(plat);
-        if (tiket == null) {
-            throw new TiketTidakDitemukanException(plat);
-        }
-        return prosesKeluar(tiket, jamKeluar, metode, uangBayar);
     }
 
     public void tampilkanStatusKapasitas() {

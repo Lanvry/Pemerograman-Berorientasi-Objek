@@ -4,7 +4,7 @@ import model.*;
 import model.QRISService.MidtransQRISResult;
 
 public class SmartParkirEndToEndTest {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         System.out.println("==========================================================");
         System.out.println("   RUNNING SMARTPARKIR 2.0 END-TO-END INTEGRATION TEST    ");
         System.out.println("==========================================================");

@@ -385,3 +385,4 @@ Blok `finally` dirancang untuk kode yang **harus selalu dijalankan apapun yang t
 
 ### Kesimpulan Praktikum P10
 Implementasi Modul 10 berhasil membuktikan bahwa penanganan kesalahan yang baik tidak hanya sekadar mencegah aplikasi dari *crash*, melainkan merupakan pondasi utama dalam menjaga **integritas dan konsistensi state objek bisnis**. Seluruh kode sumber, unit test, dan dokumentasi telah disinkronkan ke dalam modul mandiri `P10` serta sistem `SmartParkir` secara teruji.
+
