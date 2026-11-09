@@ -310,6 +310,27 @@ public class DatabaseManager {
     }
 
     /**
+     * Memperbarui status pelunasan transaksi karcis di database.
+     */
+    public static boolean updatePelunasanTiket(String nomorTiket, int jamKeluar, double biaya, String metode) {
+        if (nomorTiket == null || nomorTiket.trim().isEmpty()) return false;
+        String sql = "UPDATE karcis_parkir SET jam_keluar = ?, total_biaya = ?, " +
+                     "metode_pembayaran = ?, sudah_dibayar = TRUE, waktu_keluar_ts = CURRENT_TIMESTAMP " +
+                     "WHERE nomor_tiket = ?";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, jamKeluar);
+            ps.setDouble(2, biaya);
+            ps.setString(3, (metode != null && !metode.isEmpty()) ? metode : "QRIS");
+            ps.setString(4, nomorTiket.trim().toUpperCase());
+            int affected = ps.executeUpdate();
+            return affected > 0;
+        } catch (SQLException e) {
+            System.err.println("[DATABASE] Gagal mengupdate pelunasan tiket " + nomorTiket + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * Memperbarui transaksi karcis saat check-out dan lunas.
      */
     public static void updateKarcisKeluar(KarcisParkir tiket) {

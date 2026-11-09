@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS karcis_parkir (
     nomor_tiket VARCHAR(30) PRIMARY KEY,
     plat_nomor VARCHAR(20) NOT NULL,
     kode_slot VARCHAR(20) NOT NULL,
+    tipe_tiket VARCHAR(30) DEFAULT 'ANPR_TICKETLESS',
     jam_masuk INT NOT NULL,
     jam_keluar INT NULL,
     durasi_jam INT NULL,
