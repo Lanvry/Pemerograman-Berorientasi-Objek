@@ -29,7 +29,13 @@ import javax.imageio.ImageIO;
 public class QRISService {
 
     public static final String CONFIG_FILE = "midtrans_config.properties";
-    private static final String SANDBOX_API_URL = "https://api.sandbox.midtrans.com/v2";
+    private static final String SANDBOX_API_URL    = "https://api.sandbox.midtrans.com/v2";
+    private static final String PRODUCTION_API_URL = "https://api.midtrans.com/v2";
+
+    public static String getApiBaseUrl(Properties cfg) {
+        boolean isProd = Boolean.parseBoolean(cfg.getProperty("midtrans.is_production", "false"));
+        return isProd ? PRODUCTION_API_URL : SANDBOX_API_URL;
+    }
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_2)
@@ -54,6 +60,26 @@ public class QRISService {
             this.amount = amount;
             this.qrString = qrString;
             this.status = "pending";
+            this.isMockFallback = false;
+        }
+    }
+
+    public static class MidtransVAResult {
+        public String orderId;
+        public double amount;
+        public String bank;
+        public String vaNumber;
+        public String status;
+        public String statusMessage;
+        public boolean isMockFallback;
+
+        public MidtransVAResult(String orderId, double amount, String bank, String vaNumber) {
+            this.orderId = orderId;
+            this.amount = amount;
+            this.bank = bank;
+            this.vaNumber = vaNumber;
+            this.status = "pending";
+            this.statusMessage = "Menunggu Pembayaran";
             this.isMockFallback = false;
         }
     }
@@ -133,7 +159,7 @@ public class QRISService {
             );
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(SANDBOX_API_URL + "/charge"))
+                    .uri(URI.create(getApiBaseUrl(cfg) + "/charge"))
                     .header("Accept", "application/json")
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Basic " + auth)
@@ -154,20 +180,38 @@ public class QRISService {
                 res.status = "pending";
                 res.statusMessage = "Midtrans Sandbox QRIS Aktif";
 
-                // Coba ambil URL gambar QR dari Midtrans actions
-                String qrUrl = extractActionUrl(body, "generate-qr-code");
+                // Prioritaskan gambar QR Code resmi dari Midtrans (generate-qr-code-v2 memiliki frame & resolusi tinggi)
+                String qrUrl = extractActionUrl(body, "generate-qr-code-v2");
+                if (qrUrl == null || qrUrl.isEmpty()) {
+                    qrUrl = extractActionUrl(body, "generate-qr-code");
+                }
                 res.qrCodeUrl = qrUrl;
 
                 if (qrUrl != null && !qrUrl.isEmpty()) {
                     try {
                         HttpRequest imgReq = HttpRequest.newBuilder()
                                 .uri(URI.create(qrUrl))
-                                .timeout(Duration.ofSeconds(3))
+                                .timeout(Duration.ofSeconds(4))
                                 .GET()
                                 .build();
                         HttpResponse<InputStream> imgRes = HTTP_CLIENT.send(imgReq, HttpResponse.BodyHandlers.ofInputStream());
                         if (imgRes.statusCode() == 200) {
                             res.qrImage = ImageIO.read(imgRes.body());
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                if (res.qrImage == null && qrString != null && !qrString.isEmpty()) {
+                    try {
+                        String encPayload = java.net.URLEncoder.encode(qrString, StandardCharsets.UTF_8);
+                        HttpRequest qrGenReq = HttpRequest.newBuilder()
+                                .uri(URI.create("https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=" + encPayload))
+                                .timeout(Duration.ofSeconds(4))
+                                .GET()
+                                .build();
+                        HttpResponse<InputStream> qrGenRes = HTTP_CLIENT.send(qrGenReq, HttpResponse.BodyHandlers.ofInputStream());
+                        if (qrGenRes.statusCode() == 200) {
+                            res.qrImage = ImageIO.read(qrGenRes.body());
                         }
                     } catch (Exception ignored) {}
                 }
@@ -194,6 +238,131 @@ public class QRISService {
     }
 
     /**
+     * Membuat charge transaksi Virtual Account (Bank Transfer) ke Midtrans API
+     */
+    public static MidtransVAResult createVirtualAccountTransaction(String orderId, double amount, String bank) {
+        Properties cfg = loadConfig();
+        String serverKey = cfg.getProperty("midtrans.server_key", "").trim();
+        String cleanBank = (bank == null || bank.trim().isEmpty()) ? "bca" : bank.toLowerCase().trim();
+
+        // Pastikan order ID unik untuk sesi pembayaran VA
+        String vaOrderId = orderId + "-VA";
+
+        if (serverKey.isEmpty() || serverKey.contains("YOUR_SANDBOX_KEY")) {
+            String fallbackVa = generateFallbackVA(cleanBank, orderId);
+            MidtransVAResult res = new MidtransVAResult(vaOrderId, amount, cleanBank, fallbackVa);
+            res.isMockFallback = true;
+            res.statusMessage = "Mode Sandbox Lokal (Simulasi VA)";
+            return res;
+        }
+
+        try {
+            String auth = Base64.getEncoder().encodeToString((serverKey + ":").getBytes(StandardCharsets.UTF_8));
+            long grossAmount = Math.round(amount);
+
+            String requestBody;
+            if ("permata".equalsIgnoreCase(cleanBank)) {
+                requestBody = String.format(
+                    "{\"payment_type\":\"bank_transfer\",\"transaction_details\":{\"order_id\":\"%s\",\"gross_amount\":%d},\"bank_transfer\":{\"bank\":\"permata\"}}",
+                    escapeJson(vaOrderId), grossAmount
+                );
+            } else if ("mandiri".equalsIgnoreCase(cleanBank) || "echannel".equalsIgnoreCase(cleanBank)) {
+                requestBody = String.format(
+                    "{\"payment_type\":\"echannel\",\"transaction_details\":{\"order_id\":\"%s\",\"gross_amount\":%d},\"echannel\":{\"bill_info1\":\"Parkir\",\"bill_info2\":\"SmartParkir\"}}",
+                    escapeJson(vaOrderId), grossAmount
+                );
+            } else {
+                requestBody = String.format(
+                    "{\"payment_type\":\"bank_transfer\",\"transaction_details\":{\"order_id\":\"%s\",\"gross_amount\":%d},\"bank_transfer\":{\"bank\":\"%s\"}}",
+                    escapeJson(vaOrderId), grossAmount, cleanBank
+                );
+            }
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(getApiBaseUrl(cfg) + "/charge"))
+                    .header("Accept", "application/json")
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", "Basic " + auth)
+                    .timeout(Duration.ofSeconds(5))
+                    .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                    .build();
+
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() == 200 || response.statusCode() == 201) {
+                String body = response.body();
+                String vaNumber = extractVaNumber(body);
+                if (vaNumber == null || vaNumber.isEmpty()) {
+                    vaNumber = generateFallbackVA(cleanBank, orderId);
+                }
+
+                MidtransVAResult res = new MidtransVAResult(vaOrderId, amount, cleanBank, vaNumber);
+                res.status = "pending";
+                res.statusMessage = "Midtrans VA Aktif (" + cleanBank.toUpperCase() + ")";
+                return res;
+            } else {
+                System.err.println("[MIDTRANS VA WARNING] HTTP " + response.statusCode() + ": " + response.body());
+            }
+        } catch (Exception ex) {
+            System.err.println("[MIDTRANS VA ERROR] " + ex.getMessage());
+        }
+
+        String fallbackVa = generateFallbackVA(cleanBank, orderId);
+        MidtransVAResult fallbackRes = new MidtransVAResult(vaOrderId, amount, cleanBank, fallbackVa);
+        fallbackRes.isMockFallback = true;
+        fallbackRes.statusMessage = "Mode Siaga (Offline VA Backup)";
+        return fallbackRes;
+    }
+
+    public static String extractVaNumber(String json) {
+        if (json == null) return null;
+        int idx = json.indexOf("\"va_number\"");
+        if (idx != -1) {
+            int colon = json.indexOf(":", idx);
+            if (colon != -1) {
+                int q1 = json.indexOf("\"", colon);
+                if (q1 != -1) {
+                    int q2 = json.indexOf("\"", q1 + 1);
+                    if (q2 != -1) return json.substring(q1 + 1, q2);
+                }
+            }
+        }
+        idx = json.indexOf("\"permata_va_number\"");
+        if (idx != -1) {
+            int colon = json.indexOf(":", idx);
+            if (colon != -1) {
+                int q1 = json.indexOf("\"", colon);
+                if (q1 != -1) {
+                    int q2 = json.indexOf("\"", q1 + 1);
+                    if (q2 != -1) return json.substring(q1 + 1, q2);
+                }
+            }
+        }
+        idx = json.indexOf("\"bill_key\"");
+        if (idx != -1) {
+            int colon = json.indexOf(":", idx);
+            if (colon != -1) {
+                int q1 = json.indexOf("\"", colon);
+                if (q1 != -1) {
+                    int q2 = json.indexOf("\"", q1 + 1);
+                    if (q2 != -1) return json.substring(q1 + 1, q2);
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String generateFallbackVA(String bank, String orderId) {
+        String num = orderId.replaceAll("\\D+", "");
+        if (num.isEmpty()) num = "123456";
+        while (num.length() < 8) num = "0" + num;
+        if ("bni".equalsIgnoreCase(bank)) return "9885" + num + "1928";
+        if ("bri".equalsIgnoreCase(bank)) return "0012" + num + "8841";
+        if ("permata".equalsIgnoreCase(bank)) return "8528" + num + "5521";
+        return "8077" + num + "4019";
+    }
+
+    /**
      * Memeriksa status transaksi QRIS ke Midtrans atau ke cache simulasi lokal
      */
     public static String checkTransactionStatus(String orderId) {
@@ -213,7 +382,7 @@ public class QRISService {
         try {
             String auth = Base64.getEncoder().encodeToString((serverKey + ":").getBytes(StandardCharsets.UTF_8));
             HttpRequest req = HttpRequest.newBuilder()
-                    .uri(URI.create(SANDBOX_API_URL + "/" + orderId + "/status"))
+                    .uri(URI.create(getApiBaseUrl(cfg) + "/" + orderId + "/status"))
                     .header("Accept", "application/json")
                     .header("Authorization", "Basic " + auth)
                     .timeout(Duration.ofSeconds(3))

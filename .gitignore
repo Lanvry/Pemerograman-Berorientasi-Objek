@@ -1,0 +1,49 @@
+# ===================================================================
+# KEAMANAN KREDENSIAL & RAHASIA (JANGAN DI-COMMIT KE GIT)
+# ===================================================================
+ai_config.properties
+midtrans_config.properties
+.env
+.env.*
+*.key
+*.secret
+
+# ===================================================================
+# BUILD OUTPUTS & BYTECODE (HANYA SOURCE CODE YANG DISIMPAN)
+# ===================================================================
+bin/
+*.class
+out/
+build/
+target/
+
+# ===================================================================
+# OS METADATA & ARTIFAK SISTEM OPERASI
+# ===================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===================================================================
+# IDE & TOOLS ARTIFACTS
+# ===================================================================
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+.superpowers/
+
+# ===================================================================
+# LOGS & TEMPORARY FILES
+# ===================================================================
+*.log
+*.tmp
+__pycache__/
+*.pyc
+*.pyo

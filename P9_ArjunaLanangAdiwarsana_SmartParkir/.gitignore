@@ -2,6 +2,7 @@
 # KEAMANAN KREDENSIAL & RAHASIA (JANGAN DI-COMMIT KE GIT)
 # ===================================================================
 ai_config.properties
+midtrans_config.properties
 .env
 .env.*
 *.key
