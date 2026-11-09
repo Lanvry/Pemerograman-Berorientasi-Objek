@@ -17,6 +17,7 @@ public class DatabaseManager {
     public static final String CONFIG_FILE = "db_config.properties";
     private static Properties config = null;
     private static Boolean connectionAvailable = null;
+    private static long lastCheckTime = 0;
 
     // Load konfigurasi dari db_config.properties
     public static synchronized Properties getConfig() {
@@ -55,14 +56,23 @@ public class DatabaseManager {
     }
 
     /**
-     * Cek apakah koneksi database aktif dan berfungsi.
+     * Cek apakah koneksi database aktif dan berfungsi (dengan cache 4 detik agar tidak memblokir EDT).
      */
     public static boolean isConnected() {
-        try (Connection conn = getConnection()) {
-            connectionAvailable = (conn != null && !conn.isClosed());
+        long now = System.currentTimeMillis();
+        if (connectionAvailable != null && (now - lastCheckTime < 4000)) {
             return connectionAvailable;
+        }
+        try {
+            DriverManager.setLoginTimeout(2); // Timeout maksimal 2 detik untuk menghindari freeze
+            try (Connection conn = getConnection()) {
+                connectionAvailable = (conn != null && !conn.isClosed());
+                lastCheckTime = now;
+                return connectionAvailable;
+            }
         } catch (Exception e) {
             connectionAvailable = false;
+            lastCheckTime = now;
             return false;
         }
     }
@@ -133,6 +143,34 @@ public class DatabaseManager {
             ps.executeUpdate();
         } catch (SQLException e) {
             System.err.println("[DATABASE] Gagal menyimpan kendaraan " + k.getPlatNomor() + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Menyimpan banyak slot sekaligus secara batch (menghemat 40+ TCP connection handshake).
+     */
+    public static void simpanBatchSlot(List<SlotParkir> slots) {
+        if (slots == null || slots.isEmpty()) return;
+        String sql = "INSERT INTO slot_parkir (kode_slot, lantai, tipe_peruntukan, terisi, plat_nomor_parkir) " +
+                     "VALUES (?, ?, ?, ?, ?) " +
+                     "ON DUPLICATE KEY UPDATE lantai = VALUES(lantai), tipe_peruntukan = VALUES(tipe_peruntukan), " +
+                     "terisi = VALUES(terisi), plat_nomor_parkir = VALUES(plat_nomor_parkir)";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            for (SlotParkir slot : slots) {
+                ps.setString(1, slot.getIdSlot());
+                ps.setInt(2, slot.getLantai());
+                ps.setString(3, slot.getTipeSlot());
+                ps.setBoolean(4, slot.isTerisi());
+                if (slot.isTerisi() && slot.getKendaraanParkir() != null) {
+                    ps.setString(5, slot.getKendaraanParkir().getPlatNomor());
+                } else {
+                    ps.setNull(5, Types.VARCHAR);
+                }
+                ps.addBatch();
+            }
+            ps.executeBatch();
+        } catch (SQLException e) {
+            System.err.println("[DATABASE] Gagal menyimpan batch slot: " + e.getMessage());
         }
     }
 
@@ -217,6 +255,22 @@ public class DatabaseManager {
             System.err.println("[DATABASE] Gagal menghitung total pendapatan: " + e.getMessage());
         }
         return 0.0;
+    }
+
+    /**
+     * Mengambil urutan counter nomor tiket terakhir dari database agar tidak terjadi tumpang tindih.
+     */
+    public static int getNextTiketCounter() {
+        String sql = "SELECT MAX(CAST(SUBSTRING(nomor_tiket, 5) AS UNSIGNED)) AS max_id FROM karcis_parkir";
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                int maxId = rs.getInt("max_id");
+                if (maxId > 0) return maxId + 1;
+            }
+        } catch (Exception ignored) {}
+        return 1;
     }
 
     /**

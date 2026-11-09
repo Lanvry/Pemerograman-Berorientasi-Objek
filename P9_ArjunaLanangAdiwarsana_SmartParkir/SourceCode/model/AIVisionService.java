@@ -20,7 +20,7 @@ public class AIVisionService {
 
     public static final String CONFIG_FILE = "ai_config.properties";
 
-    // Singleton HttpClient dengan HTTP/2 dan connection pool aktif agar eksekusi AI satset tanpa overhead handshake berulang
+    // Singleton HttpClient dengan HTTP/2 dan connection pool untuk efisiensi reuse socket
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_2)
         .connectTimeout(Duration.ofSeconds(6))
@@ -126,8 +126,8 @@ public class AIVisionService {
             return new DetectionResult("-", "-", "MOBIL", "", false, "Frame gambar kosong.", false);
         }
         try {
-            // Optimasi kecepatan: resize ke max 360px agar payload kecil (25KB vs 250KB) & tokens berkurang drastis
-            BufferedImage optimized = prepareOptimizedFrame(img, 360);
+            // Optimasi kecepatan & akurasi OCR: resize ke max 640px agar plat terbaca jelas & payload tetap ringan
+            BufferedImage optimized = prepareOptimizedFrame(img, 640);
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(optimized, "jpg", baos);
             byte[] bytes = baos.toByteArray();

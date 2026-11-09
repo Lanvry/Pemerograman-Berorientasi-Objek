@@ -38,14 +38,22 @@ public class GedungParkir {
         this.tarifJamPertamaMotor = tarifJamPertamaMotor;
         this.tarifPerJamMotor = tarifPerJamMotor;
         this.totalPendapatan = 0.0;
-        this.counterTiket = 1;
         DatabaseManager.inisialisasiDatabase();
+        this.counterTiket = DatabaseManager.getNextTiketCounter();
+        this.totalPendapatan = DatabaseManager.hitungTotalPendapatanDB();
     }
 
     public void tambahSlot(SlotParkir slot) {
         if (slot != null) {
             daftarSlot.add(slot);
             DatabaseManager.updateStatusSlot(slot);
+        }
+    }
+
+    public void tambahDaftarSlot(List<SlotParkir> slots) {
+        if (slots != null && !slots.isEmpty()) {
+            daftarSlot.addAll(slots);
+            DatabaseManager.simpanBatchSlot(slots);
         }
     }
 
@@ -69,7 +77,9 @@ public class GedungParkir {
             if (!slot.isTerisi() && slot.cocokUntuk(k)) {
                 if (kandidat == null || slot.getLantai() < kandidat.getLantai()) {
                     kandidat = slot;
-                    break; // Ambil slot kosong pertama yang cocok
+                    if (kandidat.getLantai() == 1) {
+                        break; // Lantai 1 adalah lantai terendah, optimal berhenti di sini
+                    }
                 }
             }
         }
@@ -178,6 +188,11 @@ public class GedungParkir {
             return false;
         }
 
+        if (tiket.isSudahDibayar()) {
+            System.out.printf("[CHECK-OUT DITOLAK] Tiket %s sudah lunas/keluar sebelumnya.%n", tiket.getNomorTiket());
+            return false;
+        }
+
         // Tentukan tarif dasar berdasarkan jenis kendaraan
         double tarifPertama = "MOTOR".equals(tiket.getKendaraan().getTipe()) ? tarifJamPertamaMotor : tarifJamPertamaMobil;
         double tarifBerikutnya = "MOTOR".equals(tiket.getKendaraan().getTipe()) ? tarifPerJamMotor : tarifPerJamMobil;
@@ -194,17 +209,21 @@ public class GedungParkir {
 
         // Kosongkan slot fisik tempat kendaraan tadi parkir
         SlotParkir slot = tiket.getSlot();
-        slot.kosongkanSlot();
+        if (slot != null) {
+            slot.kosongkanSlot();
+            DatabaseManager.updateStatusSlot(slot);
+        }
 
         // Akumulasi kas pendapatan
         this.totalPendapatan += tiket.getTotalBiaya();
 
         // Persistensi ke Database MySQL
-        DatabaseManager.updateStatusSlot(slot);
         DatabaseManager.updateKarcisKeluar(tiket);
 
         System.out.printf("[CHECK-OUT SUKSES] Kendaraan %s telah keluar.%n", tiket.getKendaraan().getPlatNomor());
-        System.out.printf(" >> Slot %s sekarang KOSONG kembali dan siap digunakan.%n", slot.getIdSlot());
+        if (slot != null) {
+            System.out.printf(" >> Slot %s sekarang KOSONG kembali dan siap digunakan.%n", slot.getIdSlot());
+        }
         return true;
     }
 
