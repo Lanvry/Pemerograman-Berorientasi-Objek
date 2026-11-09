@@ -31,10 +31,12 @@ Sebelumnya, proyek SmartParkir dirancang sebagai implementasi akademik PBO Modul
 2. **Dynamic Zone & Floor Capacity Engine**:
    - Menghilangkan ilusi mendikte nomor petak individual. Sistem mengelola kuota agregat per lantai (`Kapasitas Maksimal - Kendaraan Aktif di Zona`).
    - Menyediakan data real-time sisa petak untuk papan VMS (*Variable Message Sign*).
-3. **Exit Gate Manless (Digital Autopay)**:
+3. **Exit Gate Manless (Digital Autopay via Midtrans Sandbox)**:
    - Kamera exit membaca plat nomor yang sama, mencocokkan waktu masuk di database.
    - Sistem menghitung durasi parkir dan tarif progresif secara otomatis (termasuk insentif diskon 20% bagi mobil listrik EV).
-   - Layar Exit Kiosk menampilkan detail tagihan dan menghasilkan **QRIS Dinamis**.
+   - Sistem memanggil **Midtrans Core API (Sandbox)** untuk menghasilkan transaksi QRIS resmi (`payment_type: qris`).
+   - Layar Exit Kiosk menampilkan gambar QR Code dari Midtrans (serta payload `qr_string` asli yang bisa di-scan/disimulasikan di Midtrans QRIS Simulator).
+   - Polling background otomatis memeriksa status transaksi ke Midtrans (`GET /v2/{order_id}/status`) hingga berstatus `settlement`, dengan tombol simulasi lokal sebagai fallback.
 4. **Instant Payment & Automatic Gate Actuation**:
    - Sistem mendeteksi pelunasan QRIS (simulasi pembayaran instan via polling/webhook).
    - Begitu lunas, palang keluar otomatis terangkat, struk digital dikirim via QR/unduh, dan foto audit keluar disimpan.

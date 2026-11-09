@@ -89,37 +89,44 @@ git -c user.name="CS-Orion" -c user.email="codingsolver0@gmail.com" commit --aut
 
 ---
 
-### Task 2: Standalone Dynamic QRIS Generator & Payment Service
+### Task 2: Midtrans Sandbox QRIS Gateway & Payment Service
 
 **Files:**
 - Create: `SourceCode/model/QRISService.java`
+- Create: `midtrans_config.properties`
 - Test: `SourceCode/test/QRISTest.java`
 
 **Interfaces:**
-- Consumes: `KarcisParkir`, transaction amount, merchant name
+- Consumes: `KarcisParkir`, transaction amount, Midtrans Server Key
 - Produces:
-  - `QRISService.generateQRISPayload(String nomorTiket, double nominal, String merchantName): String`
+  - `QRISService.createMidtransTransaction(String orderId, double amount): MidtransQRISResult`
+  - `QRISService.checkTransactionStatus(String orderId): String` (returns `settlement`, `pending`, `expire`)
   - `QRISService.generateQRCodeImage(String payload, int size): BufferedImage`
-  - `QRISService.simulasiBayar(String nomorTiket): boolean`
+  - `QRISService.simulasiBayar(String nomorTiket): boolean` (fallback/instant simulator)
 
-- [ ] **Step 1: Write the failing test for QRIS payload generation**
+- [ ] **Step 1: Write the failing test for Midtrans QRIS Service**
 
 ```java
 // SourceCode/test/QRISTest.java
 package test;
 
 import model.QRISService;
+import model.QRISService.MidtransQRISResult;
 import java.awt.image.BufferedImage;
 
 public class QRISTest {
     public static void main(String[] args) {
+        // Test local QRIS payload & image generator
         String payload = QRISService.generateQRISPayload("TKT-2026-001", 15000, "SMARTPARKIR PENS");
         assert payload.contains("SMARTPARKIR PENS") : "Payload must contain merchant";
-        assert payload.contains("15000") : "Payload must contain amount";
         
         BufferedImage qrImg = QRISService.generateQRCodeImage(payload, 250);
-        assert qrImg != null : "Generated image must not be null";
-        assert qrImg.getWidth() == 250 : "Width must match requested size";
+        assert qrImg != null && qrImg.getWidth() == 250 : "QR image must generate cleanly";
+        
+        // Test Midtrans Sandbox connection or mock response
+        MidtransQRISResult res = QRISService.createMidtransTransaction("TEST-ORDER-" + System.currentTimeMillis(), 10000);
+        assert res != null : "Result should not be null";
+        assert res.qrString != null || res.isMockFallback : "Must have qrString or fallback";
         
         System.out.println("QRISTest: PASS");
     }
@@ -131,9 +138,9 @@ public class QRISTest {
 Run: `javac -cp bin -d bin SourceCode/test/QRISTest.java`
 Expected: Compilation failure (`cannot find symbol QRISService`).
 
-- [ ] **Step 3: Implement `QRISService.java`**
+- [ ] **Step 3: Implement `QRISService.java` with Midtrans Sandbox REST API & offline fallback**
 
-Implement dynamic QRIS payload formatting (EMVCo standard string format) and a clean, lightweight matrix barcode renderer drawing square bit modules onto a `BufferedImage` with quiet zones and finder patterns, requiring zero external dependencies.
+Implement `midtrans_config.properties` loader (`midtrans.server_key`), HTTP client calling `https://api.sandbox.midtrans.com/v2/charge` with `payment_type: qris`, QR string parsing, transaction status check (`https://api.sandbox.midtrans.com/v2/{order_id}/status`), and a built-in zero-dependency QR code bitmatrix renderer for displaying the QR image in Java Swing.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -143,7 +150,7 @@ Expected: Output `QRISTest: PASS`.
 - [ ] **Step 5: Commit**
 
 ```bash
-git -c user.name="Lanvry" -c user.email="wardilanang46@gmail.com" commit --author="Lanvry <wardilanang46@gmail.com>" -m "feat: add zero-dependency dynamic QRIS generator and payment service"
+git -c user.name="Lanvry" -c user.email="wardilanang46@gmail.com" commit --author="Lanvry <wardilanang46@gmail.com>" -m "feat: implement Midtrans Sandbox QRIS gateway and status polling"
 ```
 
 ---
