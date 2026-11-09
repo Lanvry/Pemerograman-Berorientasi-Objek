@@ -57,6 +57,95 @@ public class GedungParkir {
         }
     }
 
+    public int getSisaKuota(String tipeKendaraan) {
+        if (tipeKendaraan == null) return 0;
+        String t = tipeKendaraan.trim().toUpperCase();
+        int count = 0;
+        for (SlotParkir s : daftarSlot) {
+            if (!s.isTerisi() && s.getTipeSlot().equals(t)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public int getSisaKuotaLantai(int lantai, String tipeKendaraan) {
+        if (tipeKendaraan == null) return 0;
+        String t = tipeKendaraan.trim().toUpperCase();
+        int count = 0;
+        for (SlotParkir s : daftarSlot) {
+            if (!s.isTerisi() && s.getLantai() == lantai && s.getTipeSlot().equals(t)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public KarcisParkir cariTiketAktif(String query) {
+        if (query == null || query.trim().isEmpty()) return null;
+        String q = query.trim().toUpperCase();
+        KarcisParkir tPlat = cariTiketAktifDenganPlat(q);
+        if (tPlat != null) return tPlat;
+        for (int i = riwayatTransaksi.size() - 1; i >= 0; i--) {
+            KarcisParkir t = riwayatTransaksi.get(i);
+            if (!t.isSudahDibayar() && t.getNomorTiket().equalsIgnoreCase(q)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    public KarcisParkir prosesMasukTicketless(Kendaraan k, int jamMasuk) {
+        if (k == null) {
+            throw new IllegalArgumentException("Kendaraan tidak boleh null!");
+        }
+        // Validasi anti double check-in
+        if (cariTiketAktifDenganPlat(k.getPlatNomor()) != null) {
+            System.out.println("[GATE REJECTED] Kendaraan plat " + k.getPlatNomor() + " sudah terdaftar aktif di dalam gedung!");
+            return null;
+        }
+
+        SlotParkir slotTersedia = cariSlotTersedia(k);
+        if (slotTersedia == null) {
+            System.out.println("[KAPASITAS PENUH] Tidak ada slot tersedia untuk tipe: " + k.getTipe());
+            return null;
+        }
+
+        slotTersedia.isiSlot(k);
+        counterTiket++;
+        String nomorTiket = String.format("TKT-%04d", counterTiket);
+        KarcisParkir tiket = new KarcisParkir(nomorTiket, k, slotTersedia, jamMasuk);
+        riwayatTransaksi.add(tiket);
+
+        DatabaseManager.simpanKendaraan(k);
+        DatabaseManager.updateStatusSlot(slotTersedia);
+        DatabaseManager.simpanTransaksiMasuk(tiket, "ANPR_TICKETLESS");
+        return tiket;
+    }
+
+    public KarcisParkir prosesMasukEmergency(String tipeKendaraan, int jamMasuk) {
+        String tipe = (tipeKendaraan != null && !tipeKendaraan.trim().isEmpty()) ? tipeKendaraan.toUpperCase() : "MOBIL";
+        counterTiket++;
+        String emgPlate = String.format("EMG-%04d", counterTiket);
+        Kendaraan kEmg = new Kendaraan(emgPlate, tipe, "MANUAL_QR");
+        
+        SlotParkir slotTersedia = cariSlotTersedia(kEmg);
+        if (slotTersedia == null) {
+            System.out.println("[KAPASITAS PENUH] Tidak ada slot tersedia untuk tiket darurat!");
+            return null;
+        }
+
+        slotTersedia.isiSlot(kEmg);
+        String nomorTiket = String.format("EMG-%04d", counterTiket);
+        KarcisParkir tiket = new KarcisParkir(nomorTiket, kEmg, slotTersedia, jamMasuk);
+        riwayatTransaksi.add(tiket);
+
+        DatabaseManager.simpanKendaraan(kEmg);
+        DatabaseManager.updateStatusSlot(slotTersedia);
+        DatabaseManager.simpanTransaksiMasuk(tiket, "EMERGENCY_QR");
+        return tiket;
+    }
+
     public SlotParkir cariSlotTersedia(Kendaraan k) {
         if (k == null) {
             return null;

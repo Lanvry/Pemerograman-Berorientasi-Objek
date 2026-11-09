@@ -200,6 +200,96 @@ public class DatabaseManager {
     }
 
     /**
+     * Menyimpan transaksi karcis masuk ke database (dengan fallback simpan kendaraan otomatis).
+     */
+    public static boolean simpanTransaksiMasuk(KarcisParkir tiket, String tipeTiket) {
+        if (tiket == null) return false;
+        if (tiket.getKendaraan() != null) {
+            simpanKendaraan(tiket.getKendaraan());
+        }
+        String sql = "INSERT INTO karcis_parkir (nomor_tiket, plat_nomor, kode_slot, jam_masuk, sudah_dibayar) " +
+                     "VALUES (?, ?, ?, ?, ?) " +
+                     "ON DUPLICATE KEY UPDATE jam_masuk = VALUES(jam_masuk)";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, tiket.getNomorTiket());
+            ps.setString(2, tiket.getKendaraan() != null ? tiket.getKendaraan().getPlatNomor() : "-");
+            ps.setString(3, tiket.getSlot() != null ? tiket.getSlot().getIdSlot() : "-");
+            ps.setInt(4, tiket.getJamMasuk());
+            ps.setBoolean(5, tiket.isSudahDibayar());
+            ps.executeUpdate();
+            return true;
+        } catch (SQLException e) {
+            System.err.println("[DATABASE] Gagal menyimpan karcis masuk " + tiket.getNomorTiket() + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Mencari tiket aktif berdasarkan plat nomor dari database.
+     */
+    public static KarcisParkir cariTiketAktifByPlat(String platNomor) {
+        if (platNomor == null || platNomor.trim().isEmpty()) return null;
+        String sql = "SELECT k.nomor_tiket, k.jam_masuk, k.sudah_dibayar, " +
+                     "v.plat_nomor, v.tipe, v.merk, " +
+                     "s.kode_slot, s.lantai, s.tipe_peruntukan " +
+                     "FROM karcis_parkir k " +
+                     "JOIN kendaraan v ON k.plat_nomor = v.plat_nomor " +
+                     "LEFT JOIN slot_parkir s ON k.kode_slot = s.kode_slot " +
+                     "WHERE REPLACE(k.plat_nomor, ' ', '') = ? AND k.sudah_dibayar = FALSE " +
+                     "ORDER BY k.waktu_masuk_ts DESC LIMIT 1";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, platNomor.replaceAll("\\s+", "").toUpperCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Kendaraan v = new Kendaraan(rs.getString("plat_nomor"), rs.getString("tipe"), rs.getString("merk"));
+                    int lantai = rs.getInt("lantai");
+                    if (lantai < 1) lantai = 1;
+                    String tipePeruntukan = rs.getString("tipe_peruntukan");
+                    if (tipePeruntukan == null) tipePeruntukan = v.getTipe();
+                    SlotParkir s = new SlotParkir(rs.getString("kode_slot"), lantai, tipePeruntukan);
+                    KarcisParkir t = new KarcisParkir(rs.getString("nomor_tiket"), v, s, rs.getInt("jam_masuk"));
+                    return t;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[DATABASE] Gagal mencari tiket aktif plat " + platNomor + ": " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Mencari tiket aktif berdasarkan nomor tiket dari database.
+     */
+    public static KarcisParkir cariTiketAktifById(String nomorTiket) {
+        if (nomorTiket == null || nomorTiket.trim().isEmpty()) return null;
+        String sql = "SELECT k.nomor_tiket, k.jam_masuk, k.sudah_dibayar, " +
+                     "v.plat_nomor, v.tipe, v.merk, " +
+                     "s.kode_slot, s.lantai, s.tipe_peruntukan " +
+                     "FROM karcis_parkir k " +
+                     "JOIN kendaraan v ON k.plat_nomor = v.plat_nomor " +
+                     "LEFT JOIN slot_parkir s ON k.kode_slot = s.kode_slot " +
+                     "WHERE k.nomor_tiket = ? AND k.sudah_dibayar = FALSE LIMIT 1";
+        try (Connection conn = getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, nomorTiket.trim().toUpperCase());
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    Kendaraan v = new Kendaraan(rs.getString("plat_nomor"), rs.getString("tipe"), rs.getString("merk"));
+                    int lantai = rs.getInt("lantai");
+                    if (lantai < 1) lantai = 1;
+                    String tipePeruntukan = rs.getString("tipe_peruntukan");
+                    if (tipePeruntukan == null) tipePeruntukan = v.getTipe();
+                    SlotParkir s = new SlotParkir(rs.getString("kode_slot"), lantai, tipePeruntukan);
+                    KarcisParkir t = new KarcisParkir(rs.getString("nomor_tiket"), v, s, rs.getInt("jam_masuk"));
+                    return t;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("[DATABASE] Gagal mencari tiket aktif ID " + nomorTiket + ": " + e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Menyimpan transaksi karcis masuk ke database.
      */
     public static void simpanKarcisMasuk(KarcisParkir tiket) {
