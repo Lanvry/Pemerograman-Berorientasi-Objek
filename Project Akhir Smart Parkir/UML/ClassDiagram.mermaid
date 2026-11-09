@@ -59,6 +59,7 @@ classDiagram
     class GedungParkir {
         -String namaGedung
         -List~SlotParkir~ daftarSlot
+        -List~Kendaraan~ daftarKendaraan
         -List~KarcisParkir~ riwayatTransaksi
         -double tarifJamPertamaMobil
         -double tarifPerJamMobil
@@ -68,6 +69,14 @@ classDiagram
         -int counterTiket
         +GedungParkir(nama, t1Mobil, t2Mobil, t1Motor, t2Motor)
         +tambahSlot(SlotParkir slot) void
+        +cariSlot(String idSlot) SlotParkir
+        +hapusSlot(String idSlot) boolean
+        +tampilkanSemuaSlot() void
+        +tambahKendaraan(Kendaraan k) void
+        +cariKendaraan(String plat) Kendaraan
+        +hapusKendaraan(String plat) boolean
+        +tampilkanSemuaKendaraan() void
+        +getDaftarKendaraan() List~Kendaraan~
         +cariSlotTersedia(Kendaraan k) SlotParkir
         +prosesMasuk(Kendaraan k, int jamMasuk) KarcisParkir
         +prosesKeluar(KarcisParkir t, int jam, String metode, double bayar) boolean
@@ -80,6 +89,7 @@ classDiagram
     }
 
     GedungParkir "1" *-- "1..*" SlotParkir : Komposisi (daftarSlot)
+    GedungParkir "1" *-- "0..*" Kendaraan : Pengelola Koleksi (daftarKendaraan)
     GedungParkir "1" *-- "0..*" KarcisParkir : Komposisi (riwayatTransaksi)
     KarcisParkir "1..*" o-- "1" Kendaraan : Agregasi (kendaraan)
     KarcisParkir "1..*" o-- "1" SlotParkir : Agregasi (slot)

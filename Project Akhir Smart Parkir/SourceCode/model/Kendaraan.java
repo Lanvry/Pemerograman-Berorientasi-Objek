@@ -58,4 +58,18 @@ public class Kendaraan {
     public String toString() {
         return String.format("%s (%s - %s)", platNomor, tipe, merk);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Kendaraan other = (Kendaraan) obj;
+        if (platNomor == null || other.platNomor == null) return false;
+        return platNomor.replaceAll("\\s+", "").equalsIgnoreCase(other.platNomor.replaceAll("\\s+", ""));
+    }
+
+    @Override
+    public int hashCode() {
+        return platNomor != null ? platNomor.replaceAll("\\s+", "").toUpperCase().hashCode() : 0;
+    }
 }

@@ -1,5 +1,6 @@
 import model.*;
 import model.AIVisionService.DetectionResult;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -73,6 +74,14 @@ public class AdminGUI extends JFrame {
     private JLabel lblQuotaLt1, lblQuotaLt2, lblQuotaEV;
 
     private JTabbedPane tabs;
+
+    // Modul 11: Pengelolaan Koleksi Kendaraan UI State
+    private DefaultTableModel tblModelKendaraan;
+    private JTable tblKendaraanList;
+    private JTextField txtCariKoleksi;
+    private JTextField txtPlatBaru, txtMerkBaru;
+    private JComboBox<String> cbTipeBaru;
+    private JLabel lblTotalKoleksiArmada;
 
     private float gateAngle = 0f, targetGate = 0f;
     private String gateLabel = "TERTUTUP";
@@ -1038,6 +1047,7 @@ public class AdminGUI extends JFrame {
         tabs.setForeground(T1);
         tabs.addTab("Check-Out", buildCheckOutPanel());
         tabs.addTab("Check-In",  buildCheckInPanel());
+        tabs.addTab("Koleksi Armada", buildKendaraanCollectionPanel());
         card.add(tabs, BorderLayout.CENTER);
         return card;
     }
@@ -1222,6 +1232,194 @@ public class AdminGUI extends JFrame {
         botButtons.add(btnMasuk);
         p.add(botButtons, BorderLayout.SOUTH);
         return p;
+    }
+
+    private JPanel buildKendaraanCollectionPanel() {
+        JPanel p = new JPanel(new BorderLayout(0, 8));
+        p.setBackground(CARD_BG);
+        p.setBorder(new EmptyBorder(8, 10, 8, 10));
+
+        // 1. Search Bar & Status Counter
+        JPanel topBox = new JPanel(new BorderLayout(6, 0));
+        topBox.setOpaque(false);
+
+        JPanel searchBar = new JPanel(new BorderLayout(4, 0));
+        searchBar.setOpaque(false);
+        txtCariKoleksi = field("");
+        txtCariKoleksi.setToolTipText("Ketik plat untuk memfilter koleksi...");
+
+        JButton btnCari = button("Cari", BLUE, WHITE);
+        btnCari.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnCari.addActionListener(e -> refreshTabelKendaraan(txtCariKoleksi.getText().trim()));
+
+        JButton btnReset = button("Semua", FIELD_BG, T1);
+        btnReset.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        btnReset.addActionListener(e -> {
+            txtCariKoleksi.setText("");
+            refreshTabelKendaraan(null);
+        });
+
+        searchBar.add(fieldLabel("Cari:"), BorderLayout.WEST);
+        searchBar.add(txtCariKoleksi, BorderLayout.CENTER);
+
+        JPanel btnGroup = new JPanel(new GridLayout(1, 2, 4, 0));
+        btnGroup.setOpaque(false);
+        btnGroup.add(btnCari);
+        btnGroup.add(btnReset);
+        searchBar.add(btnGroup, BorderLayout.EAST);
+
+        lblTotalKoleksiArmada = new JLabel("Total: 0");
+        lblTotalKoleksiArmada.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblTotalKoleksiArmada.setForeground(TEAL);
+
+        topBox.add(searchBar, BorderLayout.CENTER);
+        topBox.add(lblTotalKoleksiArmada, BorderLayout.EAST);
+        p.add(topBox, BorderLayout.NORTH);
+
+        // 2. Table Kumpulan Kendaraan (List<Kendaraan>)
+        String[] cols = {"Plat Nomor", "Kategori", "Merk / Brand", "Status Parkir"};
+        tblModelKendaraan = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tblKendaraanList = new JTable(tblModelKendaraan);
+        tblKendaraanList.setBackground(FIELD_BG);
+        tblKendaraanList.setForeground(T1);
+        tblKendaraanList.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        tblKendaraanList.setRowHeight(22);
+        tblKendaraanList.setShowGrid(true);
+        tblKendaraanList.setGridColor(BORDER);
+        tblKendaraanList.setSelectionBackground(BLUE_LT);
+        tblKendaraanList.setSelectionForeground(WHITE);
+        tblKendaraanList.getTableHeader().setBackground(CARD_BG);
+        tblKendaraanList.getTableHeader().setForeground(T2);
+        tblKendaraanList.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 10));
+
+        JScrollPane sp = new JScrollPane(tblKendaraanList);
+        sp.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        sp.getViewport().setBackground(FIELD_BG);
+        p.add(sp, BorderLayout.CENTER);
+
+        // 3. Form Pendaftaran Armada Baru & Aksi Hapus
+        JPanel botBox = new JPanel(new BorderLayout(0, 6));
+        botBox.setOpaque(false);
+
+        JPanel formAdd = new JPanel(new GridLayout(3, 2, 6, 4));
+        formAdd.setOpaque(false);
+
+        formAdd.add(fieldLabel("Plat Baru:"));
+        txtPlatBaru = field("");
+        formAdd.add(txtPlatBaru);
+
+        formAdd.add(fieldLabel("Kategori:"));
+        cbTipeBaru = new JComboBox<>(new String[]{"MOBIL", "MOTOR", "MOBIL_LISTRIK"});
+        styleCombo(cbTipeBaru);
+        formAdd.add(cbTipeBaru);
+
+        formAdd.add(fieldLabel("Merk / Model:"));
+        txtMerkBaru = field("");
+        formAdd.add(txtMerkBaru);
+
+        botBox.add(formAdd, BorderLayout.CENTER);
+
+        JPanel btnActionRow = new JPanel(new GridLayout(1, 2, 6, 0));
+        btnActionRow.setOpaque(false);
+
+        JButton btnDaftar = button("+ Daftarkan Armada", TEAL, WHITE);
+        btnDaftar.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnDaftar.addActionListener(e -> handleTambahKendaraanCollection());
+
+        JButton btnHapus = button("Hapus Terpilih", RED, WHITE);
+        btnHapus.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnHapus.addActionListener(e -> handleHapusKendaraanCollection());
+
+        btnActionRow.add(btnDaftar);
+        btnActionRow.add(btnHapus);
+        botBox.add(btnActionRow, BorderLayout.SOUTH);
+
+        p.add(botBox, BorderLayout.SOUTH);
+        return p;
+    }
+
+    private void refreshTabelKendaraan(String query) {
+        if (tblModelKendaraan == null) return;
+        tblModelKendaraan.setRowCount(0);
+        List<Kendaraan> list = gedung.getDaftarKendaraan();
+        String q = (query != null && !query.trim().isEmpty()) ? query.trim().replaceAll("\\s+", "").toUpperCase() : null;
+
+        for (Kendaraan k : list) {
+            String pStr = k.getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+            if (q != null && !pStr.contains(q)) {
+                continue;
+            }
+            SlotParkir slotAktif = gedung.cariSlotDenganPlat(k.getPlatNomor());
+            String status = (slotAktif != null) ? "PARKIR (" + slotAktif.getIdSlot() + ")" : "BEBAS";
+            tblModelKendaraan.addRow(new Object[]{
+                k.getPlatNomor(),
+                k.getTipe(),
+                k.getMerk(),
+                status
+            });
+        }
+        if (lblTotalKoleksiArmada != null) {
+            lblTotalKoleksiArmada.setText("Total: " + gedung.getTotalKendaraanTerdaftar() + " unit");
+        }
+    }
+
+    private void handleTambahKendaraanCollection() {
+        try {
+            String plat = txtPlatBaru.getText().trim();
+            String tipe = (String) cbTipeBaru.getSelectedItem();
+            String merk = txtMerkBaru.getText().trim();
+
+            if (plat.isEmpty()) { warn("Plat nomor tidak boleh kosong!"); return; }
+            if (merk.isEmpty()) merk = "Umum";
+
+            Kendaraan.validasiFormatPlat(plat);
+            Kendaraan k = new Kendaraan(plat, tipe, merk);
+            gedung.tambahKendaraan(k);
+
+            txtPlatBaru.setText("");
+            txtMerkBaru.setText("");
+            refreshTabelKendaraan(null);
+            JOptionPane.showMessageDialog(this,
+                "Kendaraan " + k.getPlatNomor() + " (" + k.getMerk() + ") berhasil didaftarkan ke koleksi!",
+                "Sukses Pendaftaran Koleksi", JOptionPane.INFORMATION_MESSAGE);
+        } catch (FormatPlatTidakValidException ex) {
+            warn("PLAT TIDAK VALID: " + ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            warn("GAGAL DAFTAR: " + ex.getMessage());
+        } catch (Exception ex) {
+            warn("Kesalahan: " + ex.getMessage());
+        }
+    }
+
+    private void handleHapusKendaraanCollection() {
+        int row = tblKendaraanList.getSelectedRow();
+        if (row < 0) {
+            warn("Pilih kendaraan pada tabel koleksi terlebih dahulu!");
+            return;
+        }
+        String plat = (String) tblModelKendaraan.getValueAt(row, 0);
+        int konfirm = JOptionPane.showConfirmDialog(this,
+            "Apakah Anda yakin ingin menghapus armada plat " + plat + " dari koleksi sistem?",
+            "Konfirmasi Hapus", JOptionPane.YES_NO_OPTION);
+        if (konfirm != JOptionPane.YES_OPTION) return;
+
+        try {
+            boolean sukses = gedung.hapusKendaraan(plat);
+            if (sukses) {
+                refreshTabelKendaraan(null);
+                JOptionPane.showMessageDialog(this,
+                    "Kendaraan plat " + plat + " berhasil dihapus dari koleksi armada.",
+                    "Sukses Dihapus", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                warn("Kendaraan plat " + plat + " tidak ditemukan dalam koleksi.");
+            }
+        } catch (IllegalStateException ex) {
+            warn("PROTEKSI OPERASIONAL DITOLAK: " + ex.getMessage());
+        } catch (Exception ex) {
+            warn("Kesalahan: " + ex.getMessage());
+        }
     }
 
     private JPanel buildLogCard() {
@@ -2278,6 +2476,7 @@ public class AdminGUI extends JFrame {
 
         renderBlueprint();
         refreshActiveVehiclesCombo();
+        refreshTabelKendaraan(null);
     }
 
     private void animGate(boolean open, String label) {

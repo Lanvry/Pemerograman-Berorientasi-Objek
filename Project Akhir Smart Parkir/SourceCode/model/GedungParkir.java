@@ -16,6 +16,7 @@ import java.util.List;
 public class GedungParkir {
     private String namaGedung;
     private List<SlotParkir> daftarSlot;
+    private List<Kendaraan> daftarKendaraan;
     private List<KarcisParkir> riwayatTransaksi;
     private double tarifJamPertamaMobil;
     private double tarifPerJamMobil;
@@ -32,6 +33,7 @@ public class GedungParkir {
         }
         this.namaGedung = namaGedung.trim();
         this.daftarSlot = new ArrayList<>();
+        this.daftarKendaraan = new ArrayList<>();
         this.riwayatTransaksi = new ArrayList<>();
         this.tarifJamPertamaMobil = tarifJamPertamaMobil;
         this.tarifPerJamMobil = tarifPerJamMobil;
@@ -44,17 +46,141 @@ public class GedungParkir {
     }
 
     public void tambahSlot(SlotParkir slot) {
-        if (slot != null) {
-            daftarSlot.add(slot);
-            DatabaseManager.updateStatusSlot(slot);
+        if (slot == null) {
+            throw new IllegalArgumentException("Objek slot tidak boleh null.");
         }
+        if (cariSlot(slot.getIdSlot()) != null) {
+            throw new IllegalArgumentException("Slot dengan ID " + slot.getIdSlot() + " sudah terdaftar.");
+        }
+        daftarSlot.add(slot);
+        DatabaseManager.updateStatusSlot(slot);
     }
 
     public void tambahDaftarSlot(List<SlotParkir> slots) {
         if (slots != null && !slots.isEmpty()) {
-            daftarSlot.addAll(slots);
+            for (SlotParkir s : slots) {
+                if (s != null && cariSlot(s.getIdSlot()) == null) {
+                    daftarSlot.add(s);
+                }
+            }
             DatabaseManager.simpanBatchSlot(slots);
         }
+    }
+
+    public SlotParkir cariSlot(String idSlot) {
+        if (idSlot == null || idSlot.trim().isEmpty()) return null;
+        String idTrim = idSlot.trim();
+        for (SlotParkir s : daftarSlot) {
+            if (s.getIdSlot().equalsIgnoreCase(idTrim)) {
+                return s;
+            }
+        }
+        return null;
+    }
+
+    public boolean hapusSlot(String idSlot) {
+        SlotParkir slot = cariSlot(idSlot);
+        if (slot == null) {
+            return false;
+        }
+        if (slot.isTerisi()) {
+            throw new IllegalStateException("Slot " + idSlot + " sedang terisi kendaraan "
+                    + slot.getKendaraanParkir().getPlatNomor() + ". Tidak dapat dihapus!");
+        }
+        return daftarSlot.remove(slot);
+    }
+
+    public void tampilkanSemuaSlot() {
+        if (daftarSlot.isEmpty()) {
+            System.out.println("Daftar slot parkir masih kosong.");
+            return;
+        }
+        for (SlotParkir s : daftarSlot) {
+            System.out.printf("Slot %s (Lt.%d, %s) : %s%n",
+                    s.getIdSlot(), s.getLantai(), s.getTipeSlot(),
+                    s.isTerisi() ? "TERISI [" + s.getKendaraanParkir().getPlatNomor() + "]" : "KOSONG");
+        }
+        System.out.println("Total slot parkir: " + daftarSlot.size());
+    }
+
+    // =========================================================================
+    // MODUL 11: PENGELOLAAN COLLECTION KENDARAAN (CRUD, VALIDASI, & ENKAPSULASI)
+    // =========================================================================
+
+    /**
+     * Menambahkan kendaraan ke dalam koleksi kendaraan terdaftar sistem.
+     * Menerapkan validasi null, format plat nomor (P10), dan pencegahan plat duplikat.
+     */
+    public void tambahKendaraan(Kendaraan k) throws FormatPlatTidakValidException {
+        if (k == null) {
+            throw new IllegalArgumentException("Objek kendaraan tidak boleh null.");
+        }
+        Kendaraan.validasiFormatPlat(k.getPlatNomor());
+        if (cariKendaraan(k.getPlatNomor()) != null) {
+            throw new IllegalArgumentException("Kendaraan dengan plat '" + k.getPlatNomor() + "' sudah terdaftar.");
+        }
+        daftarKendaraan.add(k);
+        DatabaseManager.simpanKendaraan(k);
+    }
+
+    /**
+     * Mencari kendaraan berdasarkan plat nomor secara case-insensitive & whitespace tolerant.
+     */
+    public Kendaraan cariKendaraan(String platNomor) {
+        if (platNomor == null || platNomor.trim().isEmpty()) {
+            return null;
+        }
+        String pTarget = platNomor.replaceAll("\\s+", "").toUpperCase();
+        for (Kendaraan k : daftarKendaraan) {
+            String pCur = k.getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+            if (pCur.equals(pTarget)) {
+                return k;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Menghapus kendaraan dari koleksi terdaftar.
+     * Menolak penghapusan jika kendaraan saat ini masih parkir aktif di slot (atomic consistency).
+     */
+    public boolean hapusKendaraan(String platNomor) {
+        Kendaraan k = cariKendaraan(platNomor);
+        if (k == null) {
+            return false;
+        }
+        // Validasi state bisnis: Cegah penghapusan jika kendaraan sedang aktif parkir
+        SlotParkir slotAktif = cariSlotDenganPlat(platNomor);
+        if (slotAktif != null) {
+            throw new IllegalStateException("Kendaraan plat " + platNomor + " sedang aktif parkir di slot "
+                    + slotAktif.getIdSlot() + ". Checkout terlebih dahulu sebelum menghapus data!");
+        }
+        return daftarKendaraan.remove(k);
+    }
+
+    /**
+     * Menampilkan seluruh daftar kendaraan terdaftar beserta jumlah totalnya.
+     */
+    public void tampilkanSemuaKendaraan() {
+        if (daftarKendaraan.isEmpty()) {
+            System.out.println("Daftar kendaraan terdaftar masih kosong.");
+            return;
+        }
+        for (Kendaraan k : daftarKendaraan) {
+            System.out.println(" • " + k);
+        }
+        System.out.println("Total kendaraan terdaftar: " + daftarKendaraan.size());
+    }
+
+    /**
+     * Mengembalikan salinan unmodifiable dari daftar kendaraan untuk melindungi enkapsulasi.
+     */
+    public List<Kendaraan> getDaftarKendaraan() {
+        return Collections.unmodifiableList(daftarKendaraan);
+    }
+
+    public int getTotalKendaraanTerdaftar() {
+        return daftarKendaraan.size();
     }
 
     public int getSisaKuota(String tipeKendaraan) {
@@ -258,6 +384,11 @@ public class GedungParkir {
         String noTiket = String.format("TKT-%04d", counterTiket++);
         KarcisParkir tiket = new KarcisParkir(noTiket, k, slotTersedia, jamMasuk);
         riwayatTransaksi.add(tiket);
+
+        // Catat kendaraan ke koleksi jika belum terdaftar
+        if (cariKendaraan(k.getPlatNomor()) == null) {
+            daftarKendaraan.add(k);
+        }
 
         // Persistensi ke Database MySQL
         DatabaseManager.simpanKendaraan(k);
