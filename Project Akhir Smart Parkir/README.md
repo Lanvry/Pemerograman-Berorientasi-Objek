@@ -261,11 +261,28 @@ Pada evolusi **SmartParkir 2.0**, sistem dikembangkan lebih lanjut agar memecahk
 ### Panduan Kompilasi & Menjalankan:
 ```bash
 # 1. Kompilasi Seluruh Source Code
-javac -cp bin:lib/mysql-connector-j.jar -d bin SourceCode/model/*.java SourceCode/*.java
+javac -cp bin:lib/mysql-connector-j.jar -d bin SourceCode/model/*.java SourceCode/test/*.java SourceCode/*.java
 
 # 2. Menjalankan Unit & Integration Test
 java -ea -cp bin:lib/mysql-connector-j.jar test.SmartParkirEndToEndTest
+java -cp bin:lib/mysql-connector-j.jar test.ExceptionHandlingTest
 
 # 3. Menjalankan Workstation GUI SmartParkir 2.0
 java -cp bin:lib/mysql-connector-j.jar AdminGUI
 ```
+
+---
+
+## 9. Exception Handling & Validasi State Objek (Materi Modul 10 PBO)
+
+Untuk menjamin keandalan sistem dalam kondisi nyata (*fail-safe operational*), sistem diperkuat dengan 5 Custom Exceptions pada package `model` yang menerapkan prinsip **Atomic State Preservation** (operasi yang ditolak tidak merusak state internal entitas):
+
+| Custom Exception | Pemicu Kegagalan | Proteksi Integritas State |
+|---|---|---|
+| **`KapasitasPenuhException`** | Slot untuk tipe kendaraan (Motor/Mobil/EV) sudah habis. | Portal masuk tetap terkunci, kuota slot di DB dan memori tidak berubah. |
+| **`KendaraanSudahParkirException`** | Plat yang sama terdeteksi masuk padahal masih parkir di gedung. | Mencegah pembukaan gerbang masuk; otomatis dialihkan ke kasir keluar. |
+| **`PembayaranKurangException`** | Uang bayar lebih kecil dari tarif parkir yang dihitung. | Portal keluar tetap tertutup; status tiket tetap belum lunas; slot tetap terikat. |
+| **`TiketTidakDitemukanException`** | Plat atau tiket tidak ditemukan dalam sesi parkir aktif. | Mencegah kendaraan bodong keluar tanpa karcis sah. |
+| **`FormatPlatTidakValidException`** | Plat nomor kosong atau format karakter rusak dari kamera. | Mencegah pembuatan objek `Kendaraan` ilegal dan query sampah ke MySQL. |
+
+Seluruh exception ditangani secara anggun pada workstation `AdminGUI.java` dengan umpan balik visual yang informatif, audio/warning alert yang akurat, serta membersihkan resource pada blok `finally`.

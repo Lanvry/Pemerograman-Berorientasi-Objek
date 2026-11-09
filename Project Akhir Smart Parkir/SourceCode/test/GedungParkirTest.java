@@ -3,7 +3,7 @@ package test;
 import model.*;
 
 public class GedungParkirTest {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         GedungParkir g = new GedungParkir("Test Mall", 5000, 3000, 2000, 1000);
         g.tambahSlot(new SlotParkir("MBL-L1-01", 1, "MOBIL"));
         g.tambahSlot(new SlotParkir("MBL-L2-01", 2, "MOBIL"));

@@ -1,12 +1,5 @@
-import model.AIVisionService;
+import model.*;
 import model.AIVisionService.DetectionResult;
-import model.DatabaseManager;
-import model.GedungParkir;
-import model.KarcisParkir;
-import model.Kendaraan;
-import model.LiveCameraStreamer;
-import model.QRISService;
-import model.SlotParkir;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -172,12 +165,15 @@ public class AdminGUI extends JFrame {
         slots.add(new SlotParkir("EV2", 1, "MOBIL_LISTRIK"));
         gedung.tambahDaftarSlot(slots);
 
-        gedung.prosesMasuk(new Kendaraan("B 6789 MTR", "MOTOR",        "Honda Vario"), 9);
-        KarcisParkir t2 = gedung.prosesMasuk(new Kendaraan("B 1234 ABC", "MOBIL",  "Toyota Avanza"), 8);
-        gedung.prosesMasuk(new Kendaraan("L 9988 XYZ", "MOBIL",        "Honda HR-V"), 10);
-        gedung.prosesMasuk(new Kendaraan("B 1010 EV",  "MOBIL_LISTRIK","Ioniq 5"), 9);
-
-        if (t2 != null) { selectedSlot = t2.getSlot(); selectedTiket = t2; }
+        try {
+            gedung.prosesMasuk(new Kendaraan("B 6789 MTR", "MOTOR",        "Honda Vario"), 9);
+            KarcisParkir t2 = gedung.prosesMasuk(new Kendaraan("B 1234 ABC", "MOBIL",  "Toyota Avanza"), 8);
+            gedung.prosesMasuk(new Kendaraan("L 9988 XYZ", "MOBIL",        "Honda HR-V"), 10);
+            gedung.prosesMasuk(new Kendaraan("B 1010 EV",  "MOBIL_LISTRIK","Ioniq 5"), 9);
+            if (t2 != null) { selectedSlot = t2.getSlot(); selectedTiket = t2; }
+        } catch (Exception ex) {
+            System.err.println("[INIT WARNING] Inisialisasi kendaraan awal: " + ex.getMessage());
+        }
     }
 
     private void buildUI() {
@@ -848,38 +844,57 @@ public class AdminGUI extends JFrame {
         }
 
         int currentHour = java.time.LocalTime.now().getHour();
-        KarcisParkir tiket = gedung.prosesMasuk(new Kendaraan(plat, tipe, merk), currentHour);
+        try {
+            Kendaraan.validasiFormatPlat(plat);
+            KarcisParkir tiket = gedung.prosesMasuk(new Kendaraan(plat, tipe, merk), currentHour);
 
-        if (tiket != null) {
-            lastProcessedPlate = plat;
-            lastProcessedTime = now;
-            selectedSlot = tiket.getSlot();
-            selectedTiket = tiket;
+            if (tiket != null) {
+                lastProcessedPlate = plat;
+                lastProcessedTime = now;
+                selectedSlot = tiket.getSlot();
+                selectedTiket = tiket;
 
-            // Buka portal gerbang dengan animasi
-            animGate(true, "TERBUKA MASUK");
+                // Buka portal gerbang dengan animasi
+                animGate(true, "TERBUKA MASUK");
 
+                cctvVehicleDetected = false;
+                cctvHudText = "MASUK SUKSES: " + plat + " -> " + tiket.getSlot().getIdSlot();
+                lblCCTVStatus.setText("<html><span style='color:#22c55e;font-size:10px;'><b>" + plat + "</b> (" + merk + ") Masuk -> Slot <b>" + tiket.getSlot().getIdSlot() + "</b> (Gate Terbuka)</span></html>");
+                lblNotice.setText("<html><span style='color:#22c55e;'>Kendaraan <b>" + plat + "</b> otomatis ter-check-in ke Slot <b>" + tiket.getSlot().getIdSlot() + "</b>. Tiket: <b>" + tiket.getNomorTiket() + "</b></span></html>");
+
+                // Sinkronisasi denah, log table, pill statistik
+                syncAll();
+
+                // Isi form check-in juga untuk display
+                txtPlat.setText(plat);
+                txtMerk.setText(merk);
+                cbTipe.setSelectedItem(tipe);
+                updateAlokasiHint();
+
+                startCCTVCooldownCountdown(8);
+            }
+        } catch (KendaraanSudahParkirException e) {
             cctvVehicleDetected = false;
-            cctvHudText = "MASUK SUKSES: " + plat + " -> " + tiket.getSlot().getIdSlot();
-            lblCCTVStatus.setText("<html><span style='color:#22c55e;font-size:10px;'><b>" + plat + "</b> (" + merk + ") Masuk -> Slot <b>" + tiket.getSlot().getIdSlot() + "</b> (Gate Terbuka)</span></html>");
-            lblNotice.setText("<html><span style='color:#22c55e;'>Kendaraan <b>" + plat + "</b> otomatis ter-check-in ke Slot <b>" + tiket.getSlot().getIdSlot() + "</b>. Tiket: <b>" + tiket.getNomorTiket() + "</b></span></html>");
-
-            // Sinkronisasi denah, log table, pill statistik
-            syncAll();
-
-            // Isi form check-in juga untuk display
-            txtPlat.setText(plat);
-            txtMerk.setText(merk);
-            cbTipe.setSelectedItem(tipe);
-            updateAlokasiHint();
-
-            // Hentikan kamera beberapa saat (countdown visual 8 detik anti-duplikasi)
-            startCCTVCooldownCountdown(8);
-        } else {
+            cctvHudText = "KENDARAAN SUDAH PARKIR: " + plat;
+            lblNotice.setText("<html><span style='color:#f59e0b;'>⚠️ " + e.getMessage() + " Mengalihkan ke alur keluar...</span></html>");
+            processExitAIDetection(plat);
+        } catch (KapasitasPenuhException e) {
             cctvVehicleDetected = false;
-            cctvHudText = "PARKIR PENUH UNTUK " + tipe;
-            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Kapasitas slot untuk " + tipe + " sudah penuh!</span></html>");
+            cctvHudText = "PARKIR PENUH (" + tipe + ")";
+            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>⚠️ " + e.getMessage() + "</span></html>");
+            lblNotice.setText("<html><span style='color:#ef4444;'>❌ " + e.getMessage() + " Portal masuk tetap terkunci!</span></html>");
+            animGate(false, "TERTUTUP (PENUH)");
             startCCTVCooldownCountdown(5);
+        } catch (FormatPlatTidakValidException e) {
+            cctvVehicleDetected = false;
+            cctvHudText = "PLAT INVALID: " + plat;
+            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>⚠️ " + e.getMessage() + "</span></html>");
+            startCCTVCooldownCountdown(4);
+        } catch (Exception e) {
+            cctvVehicleDetected = false;
+            cctvHudText = "GAGAL MASUK: " + e.getMessage();
+            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Kesalahan: " + e.getMessage() + "</span></html>");
+            startCCTVCooldownCountdown(4);
         }
     }
 
@@ -1362,11 +1377,13 @@ public class AdminGUI extends JFrame {
                 selectedTiket = tiket;
                 syncAll();
                 showEmergencyTicketDialog(tiket);
-            } else {
-                warn("Kapasitas untuk tiket darurat " + tipe + " sudah penuh.");
             }
+        } catch (NumberFormatException ex) {
+            warn("Format jam masuk salah: Harap masukkan angka bulat (0-23)!");
+        } catch (KapasitasPenuhException ex) {
+            warn("KAPASITAS PENUH: " + ex.getMessage());
         } catch (Exception ex) {
-            warn("Input tidak valid: " + ex.getMessage());
+            warn("Gagal membuat tiket darurat: " + ex.getMessage());
         }
     }
 
@@ -1434,13 +1451,7 @@ public class AdminGUI extends JFrame {
             String tipe = (String) cbTipe.getSelectedItem();
             int jam = Integer.parseInt(txtJamMasuk.getText().trim());
             if (plat.isEmpty() || merk.isEmpty()) { warn("Plat dan merk tidak boleh kosong."); return; }
-
-            // Cek duplikasi di gedung
-            SlotParkir sudahParkir = gedung.cariSlotDenganPlat(plat);
-            if (sudahParkir != null) {
-                warn("Kendaraan plat " + plat + " sudah terparkir di slot " + sudahParkir.getIdSlot() + "!\nDuplikasi dicegah.");
-                return;
-            }
+            Kendaraan.validasiFormatPlat(plat);
 
             KarcisParkir tiket = gedung.prosesMasuk(new Kendaraan(plat, tipe, merk), jam);
             if (tiket != null) {
@@ -1454,11 +1465,17 @@ public class AdminGUI extends JFrame {
                     + "\nKendaraan: " + plat + " (" + merk + ")"
                     + "\nSlot: " + tiket.getSlot().getIdSlot(),
                     "Sukses Masuk", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                warn("Kapasitas untuk " + tipe + " sudah penuh.");
             }
+        } catch (NumberFormatException ex) {
+            warn("Format jam masuk salah: Harap masukkan bilangan bulat (0-23)!");
+        } catch (FormatPlatTidakValidException ex) {
+            warn("PLAT TIDAK VALID: " + ex.getMessage());
+        } catch (KendaraanSudahParkirException ex) {
+            warn("DUPLIKASI DITOLAK: " + ex.getMessage());
+        } catch (KapasitasPenuhException ex) {
+            warn("PARKIR PENUH: " + ex.getMessage());
         } catch (Exception ex) {
-            warn("Input tidak valid: " + ex.getMessage());
+            warn("Kesalahan input: " + ex.getMessage());
         }
     }
 
@@ -1495,11 +1512,15 @@ public class AdminGUI extends JFrame {
                 lblTagihan.setText("Rp 0");
                 syncAll();
                 showReceiptDialog(found, uang);
-            } else {
-                warn("Pembayaran kurang dari tagihan.");
             }
+        } catch (NumberFormatException ex) {
+            warn("Format angka salah: Harap masukkan jam keluar dan nominal bayar berupa angka bulat!");
+        } catch (PembayaranKurangException ex) {
+            warn("PEMBAYARAN DITOLAK: " + ex.getMessage() + "\nPortal keluar tetap terkunci!");
+        } catch (TiketTidakDitemukanException ex) {
+            warn("TIKET TIDAK DITEMUKAN: " + ex.getMessage());
         } catch (Exception ex) {
-            warn("Input tidak valid: " + ex.getMessage());
+            warn("Kesalahan check-out: " + ex.getMessage());
         }
     }
 
@@ -1539,11 +1560,15 @@ public class AdminGUI extends JFrame {
                 lblTagihan.setText("Rp 0");
                 syncAll();
                 showReceiptDialog(found, total);
-            } else {
-                warn("Gagal memproses check-out keluar.");
             }
+        } catch (NumberFormatException ex) {
+            warn("Format jam keluar tidak valid!");
+        } catch (PembayaranKurangException ex) {
+            warn("PEMBAYARAN KURANG: " + ex.getMessage());
+        } catch (TiketTidakDitemukanException ex) {
+            warn("TIKET TIDAK DITEMUKAN: " + ex.getMessage());
         } catch (Exception ex) {
-            warn("Gagal proses keluar: " + ex.getMessage());
+            warn("Gagal memproses pembayaran cepat: " + ex.getMessage());
         }
     }
 
@@ -1697,16 +1722,20 @@ public class AdminGUI extends JFrame {
             if ("settlement".equalsIgnoreCase(st) || "capture".equalsIgnoreCase(st)) {
                 pollTimer.stop();
                 dlg.dispose();
-                boolean ok = gedung.prosesKeluar(tiket, jamKeluar, "QRIS_MIDTRANS", totalTagihan);
-                if (ok) {
-                    DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, "QRIS_MIDTRANS");
-                    animGate(true, "TERBUKA KELUAR");
-                    selectedSlot = null;
-                    selectedTiket = null;
-                    lblNotice.setText("<html><span style='color:#16a34a;'>Pembayaran QRIS Midtrans Terkonfirmasi LUNAS! Portal terbuka.</span></html>");
-                    lblTagihan.setText("Rp 0");
-                    syncAll();
-                    showReceiptDialog(tiket, totalTagihan);
+                try {
+                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, "QRIS_MIDTRANS", totalTagihan);
+                    if (ok) {
+                        DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, "QRIS_MIDTRANS");
+                        animGate(true, "TERBUKA KELUAR");
+                        selectedSlot = null;
+                        selectedTiket = null;
+                        lblNotice.setText("<html><span style='color:#16a34a;'>Pembayaran QRIS Midtrans Terkonfirmasi LUNAS! Portal terbuka.</span></html>");
+                        lblTagihan.setText("Rp 0");
+                        syncAll();
+                        showReceiptDialog(tiket, totalTagihan);
+                    }
+                } catch (Exception ex) {
+                    warn("Gagal menyelesaikan transaksi: " + ex.getMessage());
                 }
             }
         });
@@ -1890,16 +1919,20 @@ public class AdminGUI extends JFrame {
                 pollTimer.stop();
                 dlg.dispose();
                 String paymentMethod = "VA_" + selectedBankName[0].toUpperCase();
-                boolean ok = gedung.prosesKeluar(tiket, jamKeluar, paymentMethod, totalTagihan);
-                if (ok) {
-                    DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, paymentMethod);
-                    animGate(true, "TERBUKA KELUAR");
-                    selectedSlot = null;
-                    selectedTiket = null;
-                    lblNotice.setText("<html><span style='color:#16a34a;'>Pembayaran Virtual Account Berhasil LUNAS! Portal terbuka.</span></html>");
-                    lblTagihan.setText("Rp 0");
-                    syncAll();
-                    showReceiptDialog(tiket, totalTagihan);
+                try {
+                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, paymentMethod, totalTagihan);
+                    if (ok) {
+                        DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, paymentMethod);
+                        animGate(true, "TERBUKA KELUAR");
+                        selectedSlot = null;
+                        selectedTiket = null;
+                        lblNotice.setText("<html><span style='color:#16a34a;'>Pembayaran Virtual Account Berhasil LUNAS! Portal terbuka.</span></html>");
+                        lblTagihan.setText("Rp 0");
+                        syncAll();
+                        showReceiptDialog(tiket, totalTagihan);
+                    }
+                } catch (Exception ex) {
+                    warn("Gagal menyelesaikan transaksi: " + ex.getMessage());
                 }
             }
         });
