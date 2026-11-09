@@ -237,3 +237,35 @@ java -cp "bin:lib/mysql-connector-j.jar" AdminGUI
 > 3. Memverifikasi pembayaran sebelum portal keluar dibuka.
 > 4. Mengosongkan kembali slot fisik saat kendaraan keluar.
 > 5. Merekap status okupansi realtime dan akumulasi kas pendapatan gedung.
+
+---
+
+## 8. SmartParkir 2.0: Real-World Manless & Ticketless System
+
+Pada evolusi **SmartParkir 2.0**, sistem dikembangkan lebih lanjut agar memecahkan masalah operasional nyata di lapangan (menghilangkan tiket kertas hilang, antrean kembalian uang tunai, dan kebutuhan operator kasir 24/7):
+
+### Fitur Utama SmartParkir 2.0:
+1. **Entrance Gate Manless (Ticketless ANPR)**:
+   - Kamera membaca plat nomor secara otomatis; plat nomor langsung menjadi ID transaksi aktif (tanpa kertas).
+   - Display gerbang menyapa pengemudi dan menampilkan sisa kuota per lantai. Palang terbuka otomatis.
+2. **Dynamic Quota & Waterfall Allocation Engine**:
+   - Sistem tidak memaksakan nomor petak kaku kepada pengemudi di gerbang masuk.
+   - Kuota lantai dihitung secara dinamis: Lantai 1 diisi terlebih dahulu (*waterfall priority*) sebelum Lantai 2, menjaga keabsahan relasi objek Modul 9 PBO tetap 100% valid.
+3. **Exit Gate Manless & Midtrans Sandbox Dynamic QRIS**:
+   - Kamera gerbang keluar mendeteksi plat nomor, mencocokkan waktu masuk, dan menghitung tarif progresif (termasuk diskon insentif 20% bagi mobil listrik EV).
+   - Layar Kiosk otomatis menghasilkan **QRIS Dinamis resmi dari Midtrans Sandbox** (`QRISService.java`).
+   - Sistem secara background melakukan polling status transaksi (`settlement`). Saat pelanggan membayar via m-banking/e-wallet (atau via tombol simulasi), palang keluar otomatis terbuka.
+4. **Fallback Tiket Darurat QR**:
+   - Jika plat nomor kotor/rusak di gerbang masuk, tombol `🎫 Tiket Darurat QR` mencetak tiket darurat ber-QR Code untuk di-scan di gerbang keluar.
+
+### Panduan Kompilasi & Menjalankan:
+```bash
+# 1. Kompilasi Seluruh Source Code
+javac -cp bin:lib/mysql-connector-j.jar -d bin SourceCode/model/*.java SourceCode/*.java
+
+# 2. Menjalankan Unit & Integration Test
+java -ea -cp bin:lib/mysql-connector-j.jar test.SmartParkirEndToEndTest
+
+# 3. Menjalankan Workstation GUI SmartParkir 2.0
+java -cp bin:lib/mysql-connector-j.jar AdminGUI
+```
