@@ -575,3 +575,4 @@ print(f"README.pdf successfully generated at: {pdf_filename}")
 # Copy to Laporan_P10_3125522010_ArjunaLanangAdiwarsana.pdf for standard submission
 shutil.copyfile(pdf_filename, laporan_pdf_filename)
 print(f"Laporan PDF copy created at: {laporan_pdf_filename}")
+
