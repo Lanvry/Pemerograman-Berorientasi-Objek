@@ -57,7 +57,7 @@ public class AdminGUI extends JFrame {
     private KarcisParkir selectedTiket;
 
     private JPanel blueprintContainer;
-    private JLabel lblTersedia, lblTerisi, lblPendapatan, lblDBStatus;
+    private JLabel lblTersedia, lblTerisi, lblPendapatan;
     private DefaultTableModel logModel;
 
     private JTextField txtTiket, txtJamKeluar, txtUangBayar;
@@ -131,16 +131,10 @@ public class AdminGUI extends JFrame {
         setMinimumSize(new Dimension(1220, 740));
         setLocationRelativeTo(null);
 
-        // Timer periodik cek koneksi database di background thread (tidak memblokir EDT)
+        // Timer periodik cek koneksi database di background thread
         Timer dbCheckTimer = new Timer(6000, e -> {
             aiExecutor.submit(() -> {
-                boolean ok = DatabaseManager.isConnected();
-                SwingUtilities.invokeLater(() -> {
-                    dbConnected = ok;
-                    if (lblDBStatus != null) {
-                        lblDBStatus.setText(fmtPill("DATABASE", ok ? "MySQL ONLINE" : "OFFLINE", ok ? T1 : RED));
-                    }
-                });
+                dbConnected = DatabaseManager.isConnected();
             });
         });
         dbCheckTimer.start();
@@ -265,15 +259,12 @@ public class AdminGUI extends JFrame {
         lblTersedia   = pill("Tersedia", "-", T1);
         lblTerisi     = pill("Terisi",   "-", RED);
         lblPendapatan = pill("Kas",      "-", T1);
-        lblDBStatus   = pill("Database", "Online", T1);
 
         statsGroup.add(lblTersedia);
         statsGroup.add(createNavDivider());
         statsGroup.add(lblTerisi);
         statsGroup.add(createNavDivider());
         statsGroup.add(lblPendapatan);
-        statsGroup.add(createNavDivider());
-        statsGroup.add(lblDBStatus);
 
         rightBox.add(btnCameraHeader);
         rightBox.add(statsGroup);
@@ -2546,9 +2537,6 @@ public class AdminGUI extends JFrame {
         lblTersedia.setText(fmtPill("Tersedia", String.valueOf(tersedia), T1));
         lblTerisi.setText(fmtPill("Terisi", String.valueOf(terisi), RED));
         lblPendapatan.setText(fmtPill("Kas", rupiah.format(gedung.getTotalPendapatan()), T1));
-        if (lblDBStatus != null) {
-            lblDBStatus.setText(fmtPill("Database", dbConnected ? "Online" : "Offline", dbConnected ? T1 : RED));
-        }
         if (lblQuotaLt1 != null) {
             lblQuotaLt1.setText(String.format("<html><span style='color:%s;font-size:10px;'>Lt. 1: </span><b style='color:%s;font-size:10px;'>%d Mobil</b></html>", hex(T2), hex(T1), gedung.getSisaKuotaLantai(1, "MOBIL")));
         }
