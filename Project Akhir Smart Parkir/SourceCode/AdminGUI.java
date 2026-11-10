@@ -346,7 +346,7 @@ public class AdminGUI extends JFrame {
         JScrollPane scroll = new JScrollPane(blueprintContainer);
         scroll.setBorder(BorderFactory.createLineBorder(BORDER, 1));
         scroll.getViewport().setBackground(CARD_BG);
-        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         scroll.getVerticalScrollBar().setUnitIncrement(14);
 
         // Sub-Toolbar Sleek: Kuota Ringkas (Kiri) + Search Bar Mini (Kanan)
@@ -539,9 +539,9 @@ public class AdminGUI extends JFrame {
                 g2.dispose();
             }
         };
-        bay.setPreferredSize(new Dimension(66, 68));
+        bay.setPreferredSize(new Dimension(58, 66));
         bay.setOpaque(false);
-        bay.setBorder(new EmptyBorder(4, 3, 4, 3));
+        bay.setBorder(new EmptyBorder(3, 2, 3, 2));
         bay.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JLabel id = new JLabel(slot.getIdSlot(), SwingConstants.CENTER);
@@ -639,7 +639,7 @@ public class AdminGUI extends JFrame {
 
     private JPanel stairBlock() {
         JPanel p = new JPanel(new BorderLayout());
-        p.setPreferredSize(new Dimension(50, 72));
+        p.setPreferredSize(new Dimension(46, 66));
         p.setBackground(AISLE);
         p.setBorder(BorderFactory.createLineBorder(BORDER, 1));
         JLabel l = new JLabel("<html><center style='font-size:9px;font-weight:600;color:#64748b;'>TANGGA<br/>LIFT</center></html>",
@@ -651,7 +651,7 @@ public class AdminGUI extends JFrame {
 
     private JPanel pillar() {
         JPanel p = new JPanel();
-        p.setPreferredSize(new Dimension(5, 72));
+        p.setPreferredSize(new Dimension(4, 66));
         p.setBackground(PILLAR);
         return p;
     }
@@ -682,7 +682,7 @@ public class AdminGUI extends JFrame {
         side.add(buildLogCard());
 
         JScrollPane scroll = new JScrollPane(side);
-        scroll.setPreferredSize(new Dimension(460, 780));
+        scroll.setPreferredSize(new Dimension(420, 780));
         scroll.setBorder(null);
         scroll.setOpaque(false);
         scroll.getViewport().setOpaque(false);
