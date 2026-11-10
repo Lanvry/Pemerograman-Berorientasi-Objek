@@ -25,29 +25,29 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AdminGUI extends JFrame {
 
-    // Palet Warna: Dark Minimalist & Aesthetic (Raycast / Linear Style: Tenang, Bersih & Nyaman di Mata)
-    private static final Color BG          = new Color(13, 17, 23);     // #0d1117 Deep Canvas
-    private static final Color CARD_BG     = new Color(22, 27, 34);     // #161b22 Surface Panel
-    private static final Color FIELD_BG    = new Color(13, 17, 23);     // #0d1117 Inner Field BG
-    private static final Color BORDER      = new Color(33, 38, 45);     // #21262d Quiet Hairline Border
-    private static final Color BORDER_DARK = new Color(48, 54, 61);     // #30363d Card Outline
-    private static final Color BLUE        = new Color(59, 130, 246);   // #3b82f6 Accent Blue
-    private static final Color BLUE_LT     = new Color(26, 43, 73);     // #1a2b49 Container Blue
-    private static final Color GREEN       = new Color(16, 185, 129);   // #10b981 Emerald
-    private static final Color GREEN_LT    = new Color(16, 44, 33);     // #102c21 Dark Emerald
-    private static final Color RED         = new Color(244, 63, 94);    // #f43f5e Rose/Coral
-    private static final Color RED_LT      = new Color(45, 16, 24);     // #2d1018 Dark Rose
-    private static final Color PURPLE      = new Color(168, 85, 247);   // #a855f7 Violet
-    private static final Color PURPLE_LT   = new Color(38, 20, 56);     // #261438 Dark Violet
-    private static final Color TEAL        = new Color(20, 184, 166);   // #14b8a6 Teal
-    private static final Color TEAL_LT     = new Color(17, 47, 45);     // #112f2d Dark Teal
-    private static final Color AMBER       = new Color(245, 158, 11);   // #f59e0b Amber
-    private static final Color AMBER_LT    = new Color(46, 33, 14);     // #2e210e Dark Amber
-    private static final Color T1          = new Color(240, 246, 252);  // #f0f6fc Crisp Heading Text
-    private static final Color T2          = new Color(139, 148, 158);  // #8b949e Slate Subtitle / Label
-    private static final Color T3          = new Color(85, 96, 110);    // #55606e Muted Details
-    private static final Color AISLE       = new Color(17, 21, 28);     // Maneuver Lane
-    private static final Color PILLAR      = new Color(48, 54, 61);     // Pillar
+    // Palet Warna: Clean Classic Light (Simple & Polosan ala Desktop Enterprise)
+    private static final Color BG          = new Color(240, 242, 245);  // #f0f2f5 Light Canvas / System Gray
+    private static final Color CARD_BG     = new Color(255, 255, 255);  // #ffffff Pure White Surface Panel
+    private static final Color FIELD_BG    = new Color(255, 255, 255);  // #ffffff Clean Input Field BG
+    private static final Color BORDER      = new Color(209, 213, 219);  // #d1d5db Subtle Hairline Border
+    private static final Color BORDER_DARK = new Color(175, 182, 192);  // #afb6c0 Card & Input Outline
+    private static final Color BLUE        = new Color(0, 120, 215);    // #0078d7 Classic Windows / Enterprise Blue
+    private static final Color BLUE_LT     = new Color(222, 237, 254);  // #deedfe Light Selection Blue
+    private static final Color GREEN       = new Color(16, 149, 90);    // #10955a Clean Forest Emerald
+    private static final Color GREEN_LT    = new Color(220, 252, 231);  // #dcfce7 Soft Green Pastel
+    private static final Color RED         = new Color(220, 38, 38);    // #dc2626 Crisp Alert Red
+    private static final Color RED_LT      = new Color(254, 226, 226);  // #fee2e2 Soft Red Pastel
+    private static final Color PURPLE      = new Color(126, 34, 206);   // #7e22ce Clean Royal Purple
+    private static final Color PURPLE_LT   = new Color(243, 232, 255);  // #f3e8ff Soft Purple Pastel
+    private static final Color TEAL        = new Color(13, 148, 136);   // #0d9488 Clean Teal
+    private static final Color TEAL_LT     = new Color(204, 251, 241);  // #ccfbf1 Soft Teal Pastel
+    private static final Color AMBER       = new Color(217, 119, 6);    // #d97706 Warm Amber
+    private static final Color AMBER_LT    = new Color(254, 243, 199);  // #fef3c7 Soft Amber Pastel
+    private static final Color T1          = new Color(20, 24, 33);     // #141821 Deep Charcoal Text
+    private static final Color T2          = new Color(75, 85, 99);     // #4b5563 Slate Subtitle / Label Text
+    private static final Color T3          = new Color(156, 163, 175);  // #9ca3af Muted Gray Details
+    private static final Color AISLE       = new Color(243, 244, 246);  // Maneuver Lane Light
+    private static final Color PILLAR      = new Color(175, 182, 192);  // Pillar Gray
     private static final Color WHITE       = Color.WHITE;
 
     private GedungParkir gedung;
@@ -507,13 +507,13 @@ public class AdminGUI extends JFrame {
         Color bgColor = isHighlight ? AMBER_LT
             : isFull ? RED_LT
             : isEV ? PURPLE_LT
-            : new Color(16, 21, 29);
+            : Color.WHITE;
 
         Color bdColor = isHighlight ? AMBER
             : isSel ? BLUE
             : isFull ? RED
-            : isEV ? new Color(124, 58, 237)
-            : BORDER_DARK;
+            : isEV ? PURPLE
+            : BORDER;
 
         JPanel bay = new JPanel(new BorderLayout(0, 2)) {
             @Override protected void paintComponent(Graphics g) {
@@ -550,11 +550,11 @@ public class AdminGUI extends JFrame {
                     formattedPlat = cleanPlat.substring(0, secondSpace) + "<br/>" + cleanPlat.substring(secondSpace + 1);
                 }
             }
-            JLabel p = new JLabel("<html><center style='color:#fca5a5;font-size:9px;font-weight:bold;line-height:95%;'>" + formattedPlat + "</center></html>",
+            JLabel p = new JLabel("<html><center style='color:#991b1b;font-size:9px;font-weight:bold;line-height:95%;'>" + formattedPlat + "</center></html>",
                 SwingConstants.CENTER);
             bay.add(p, BorderLayout.CENTER);
         } else {
-            JLabel empty = new JLabel("<html><center style='color:#3a4454;font-size:12px;'>·</center></html>", SwingConstants.CENTER);
+            JLabel empty = new JLabel("<html><center style='color:#9ca3af;font-size:12px;'>·</center></html>", SwingConstants.CENTER);
             bay.add(empty, BorderLayout.CENTER);
         }
 
@@ -598,14 +598,14 @@ public class AdminGUI extends JFrame {
                     + "  |  Masuk: " + selectedTiket.getJamMasuk() + ":00");
                 txtJamKeluar.setText(String.valueOf(Math.min(23, selectedTiket.getJamMasuk() + 2)));
                 updateTagihan();
-                lblNotice.setText("<html><span style='color:#34d399;'>Kendaraan dipilih: " + k.getPlatNomor() + "</span></html>");
+                lblNotice.setText("<html><span style='color:#16a34a;'>Kendaraan dipilih: " + k.getPlatNomor() + "</span></html>");
             }
         } else {
             tabs.setSelectedIndex(1);
             if ("MOTOR".equals(slot.getTipeSlot())) cbTipe.setSelectedItem("MOTOR");
             else if ("MOBIL_LISTRIK".equals(slot.getTipeSlot())) cbTipe.setSelectedItem("MOBIL_LISTRIK");
             else cbTipe.setSelectedItem("MOBIL");
-            lblNotice.setText("<html><span style='color:#94a3b8;'>Slot " + slot.getIdSlot() + " dipilih (Kosong)</span></html>");
+            lblNotice.setText("<html><span style='color:#4b5563;'>Slot " + slot.getIdSlot() + " dipilih (Kosong)</span></html>");
         }
         renderBlueprint();
     }
@@ -780,7 +780,7 @@ public class AdminGUI extends JFrame {
             @Override
             public void onStatusChange(String status, boolean isError) {
                 SwingUtilities.invokeLater(() -> {
-                    lblCCTVStatus.setText("<html><span style='color:" + (isError ? "#ef4444" : "#38bdf8") + ";font-size:10px;'>" + status + "</span></html>");
+                    lblCCTVStatus.setText("<html><span style='color:" + (isError ? "#dc2626" : "#0284c7") + ";font-size:10px;'>" + status + "</span></html>");
                 });
             }
         });
@@ -797,7 +797,7 @@ public class AdminGUI extends JFrame {
         cctvHudText = "MEMINDAI PLAT NOMOR...";
 
         SwingUtilities.invokeLater(() -> {
-            lblCCTVStatus.setText("<html><span style='color:#38bdf8;font-size:10px;'>Memindai plat nomor kendaraan...</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#0284c7;font-size:10px;'>Memindai plat nomor kendaraan...</span></html>");
             drawCCTVScreen(frame, true, cctvHudText);
         });
 
@@ -812,7 +812,7 @@ public class AdminGUI extends JFrame {
                 SwingUtilities.invokeLater(() -> {
                     cctvVehicleDetected = false;
                     cctvHudText = "ERROR AI: " + ex.getMessage();
-                    lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Error AI: " + ex.getMessage() + "</span></html>");
+                    lblCCTVStatus.setText("<html><span style='color:#dc2626;font-size:10px;'>Error AI: " + ex.getMessage() + "</span></html>");
                     startCCTVCooldownCountdown(1);
                 });
             } finally {
@@ -829,7 +829,7 @@ public class AdminGUI extends JFrame {
         if (!AIVisionService.isValidPlate(plat)) {
             cctvVehicleDetected = false;
             cctvHudText = "STANDBY - " + (isExitGateMode ? "GERBANG KELUAR" : "GERBANG MASUK");
-            lblCCTVStatus.setText("<html><span style='color:#94a3b8;font-size:10px;'>Kamera aktif memantau " + (isExitGateMode ? "gerbang keluar..." : "gerbang masuk...") + "</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#4b5563;font-size:10px;'>Kamera aktif memantau " + (isExitGateMode ? "gerbang keluar..." : "gerbang masuk...") + "</span></html>");
             startCCTVCooldownCountdown(1);
             return;
         }
@@ -870,8 +870,8 @@ public class AdminGUI extends JFrame {
 
                 cctvVehicleDetected = false;
                 cctvHudText = "MASUK SUKSES: " + plat + " -> " + tiket.getSlot().getIdSlot();
-                lblCCTVStatus.setText("<html><span style='color:#22c55e;font-size:10px;'><b>" + plat + "</b> (" + merk + ") Masuk -> Slot <b>" + tiket.getSlot().getIdSlot() + "</b> (Gate Terbuka)</span></html>");
-                lblNotice.setText("<html><span style='color:#22c55e;'>Kendaraan <b>" + plat + "</b> otomatis ter-check-in ke Slot <b>" + tiket.getSlot().getIdSlot() + "</b>. Tiket: <b>" + tiket.getNomorTiket() + "</b></span></html>");
+                lblCCTVStatus.setText("<html><span style='color:#16a34a;font-size:10px;'><b>" + plat + "</b> (" + merk + ") Masuk -> Slot <b>" + tiket.getSlot().getIdSlot() + "</b> (Gate Terbuka)</span></html>");
+                lblNotice.setText("<html><span style='color:#16a34a;'>Kendaraan <b>" + plat + "</b> otomatis ter-check-in ke Slot <b>" + tiket.getSlot().getIdSlot() + "</b>. Tiket: <b>" + tiket.getNomorTiket() + "</b></span></html>");
 
                 // Sinkronisasi denah, log table, pill statistik
                 syncAll();
@@ -887,24 +887,24 @@ public class AdminGUI extends JFrame {
         } catch (KendaraanSudahParkirException e) {
             cctvVehicleDetected = false;
             cctvHudText = "KENDARAAN SUDAH PARKIR: " + plat;
-            lblNotice.setText("<html><span style='color:#f59e0b;'>⚠️ " + e.getMessage() + " Mengalihkan ke alur keluar...</span></html>");
+            lblNotice.setText("<html><span style='color:#d97706;'>⚠️ " + e.getMessage() + " Mengalihkan ke alur keluar...</span></html>");
             processExitAIDetection(plat);
         } catch (KapasitasPenuhException e) {
             cctvVehicleDetected = false;
             cctvHudText = "PARKIR PENUH (" + tipe + ")";
-            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>⚠️ " + e.getMessage() + "</span></html>");
-            lblNotice.setText("<html><span style='color:#ef4444;'>❌ " + e.getMessage() + " Portal masuk tetap terkunci!</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#dc2626;font-size:10px;'>⚠️ " + e.getMessage() + "</span></html>");
+            lblNotice.setText("<html><span style='color:#dc2626;'>❌ " + e.getMessage() + " Portal masuk tetap terkunci!</span></html>");
             animGate(false, "TERTUTUP (PENUH)");
             startCCTVCooldownCountdown(5);
         } catch (FormatPlatTidakValidException e) {
             cctvVehicleDetected = false;
             cctvHudText = "PLAT INVALID: " + plat;
-            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>⚠️ " + e.getMessage() + "</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#dc2626;font-size:10px;'>⚠️ " + e.getMessage() + "</span></html>");
             startCCTVCooldownCountdown(4);
         } catch (Exception e) {
             cctvVehicleDetected = false;
             cctvHudText = "GAGAL MASUK: " + e.getMessage();
-            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>Kesalahan: " + e.getMessage() + "</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#dc2626;font-size:10px;'>Kesalahan: " + e.getMessage() + "</span></html>");
             startCCTVCooldownCountdown(4);
         }
     }
@@ -923,7 +923,7 @@ public class AdminGUI extends JFrame {
                 lblCCTVLiveBadge.setText("● Siaran Aktif");
                 lblCCTVLiveBadge.setForeground(GREEN);
                 cctvHudText = "MEMANTAU GERBANG MASUK...";
-                lblCCTVStatus.setText("<html><span style='color:#38bdf8;font-size:10px;'>Sensor aktif: Menunggu kendaraan di gerbang masuk...</span></html>");
+                lblCCTVStatus.setText("<html><span style='color:#0284c7;font-size:10px;'>Sensor aktif: Menunggu kendaraan di gerbang masuk...</span></html>");
             }
         });
         timer.start();
@@ -1063,10 +1063,10 @@ public class AdminGUI extends JFrame {
         JPanel topBox = new JPanel(new BorderLayout(0, 4));
         topBox.setOpaque(false);
 
-        lblInfoKendaraan = new JLabel("<html><span style='color:#8b949e;'>Pilih kendaraan di denah atau daftar di bawah</span></html>");
+        lblInfoKendaraan = new JLabel("<html><span style='color:#4b5563;'>Pilih kendaraan di denah atau daftar di bawah</span></html>");
         lblInfoKendaraan.setFont(new Font("Segoe UI", Font.PLAIN, 10));
         lblInfoKendaraan.setOpaque(true);
-        lblInfoKendaraan.setBackground(FIELD_BG);
+        lblInfoKendaraan.setBackground(new Color(243, 244, 246));
         lblInfoKendaraan.setForeground(T1);
         lblInfoKendaraan.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(BORDER, 1), new EmptyBorder(5, 8, 5, 8)));
@@ -1125,9 +1125,9 @@ public class AdminGUI extends JFrame {
         bot.setOpaque(false);
 
         JPanel tagihanBar = new JPanel(new BorderLayout());
-        tagihanBar.setBackground(new Color(20, 26, 36));
+        tagihanBar.setBackground(new Color(239, 246, 255));
         tagihanBar.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_DARK, 1),
+            BorderFactory.createLineBorder(new Color(191, 219, 254), 1),
             new EmptyBorder(6, 12, 6, 12)));
         JLabel tl = new JLabel("Total Tagihan:");
         tl.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -1290,11 +1290,12 @@ public class AdminGUI extends JFrame {
         tblKendaraanList.setRowHeight(22);
         tblKendaraanList.setShowGrid(true);
         tblKendaraanList.setGridColor(BORDER);
-        tblKendaraanList.setSelectionBackground(BLUE_LT);
+        tblKendaraanList.setSelectionBackground(BLUE);
         tblKendaraanList.setSelectionForeground(WHITE);
-        tblKendaraanList.getTableHeader().setBackground(CARD_BG);
-        tblKendaraanList.getTableHeader().setForeground(T2);
+        tblKendaraanList.getTableHeader().setBackground(new Color(243, 244, 246));
+        tblKendaraanList.getTableHeader().setForeground(T1);
         tblKendaraanList.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 10));
+        tblKendaraanList.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
 
         JScrollPane sp = new JScrollPane(tblKendaraanList);
         sp.setBorder(BorderFactory.createLineBorder(BORDER, 1));
@@ -1527,10 +1528,10 @@ public class AdminGUI extends JFrame {
         tbl.setRowHeight(24);
         tbl.setShowGrid(true);
         tbl.setGridColor(BORDER);
-        tbl.setSelectionBackground(BLUE_LT);
+        tbl.setSelectionBackground(BLUE);
         tbl.setSelectionForeground(WHITE);
-        tbl.getTableHeader().setBackground(CARD_BG);
-        tbl.getTableHeader().setForeground(T2);
+        tbl.getTableHeader().setBackground(new Color(243, 244, 246));
+        tbl.getTableHeader().setForeground(T1);
         tbl.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 10));
         tbl.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
 
@@ -1540,10 +1541,10 @@ public class AdminGUI extends JFrame {
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
                 if (!isSelected) {
-                    c.setBackground(row % 2 == 0 ? FIELD_BG : new Color(18, 23, 31));
+                    c.setBackground(row % 2 == 0 ? FIELD_BG : new Color(249, 250, 251));
                     c.setForeground(T1);
                 } else {
-                    c.setBackground(BLUE_LT);
+                    c.setBackground(BLUE);
                     c.setForeground(WHITE);
                 }
                 return c;
@@ -1788,7 +1789,7 @@ public class AdminGUI extends JFrame {
                 animGate(true, "TERBUKA KELUAR");
                 selectedSlot  = null;
                 selectedTiket = null;
-                lblNotice.setText("<html><span style='color:#34d399;'>Check-out berhasil. Slot kosong kembali.</span></html>");
+                lblNotice.setText("<html><span style='color:#16a34a;'>Check-out berhasil. Slot kosong kembali.</span></html>");
                 lblTagihan.setText("Rp 0");
                 syncAll();
                 showReceiptDialog(found, uang);
@@ -1836,7 +1837,7 @@ public class AdminGUI extends JFrame {
                 animGate(true, "TERBUKA KELUAR");
                 selectedSlot  = null;
                 selectedTiket = null;
-                lblNotice.setText("<html><span style='color:#34d399;'>Check-out sukses dengan " + metode + ". Gate terbuka!</span></html>");
+                lblNotice.setText("<html><span style='color:#16a34a;'>Check-out sukses dengan " + metode + ". Gate terbuka!</span></html>");
                 lblTagihan.setText("Rp 0");
                 syncAll();
                 showReceiptDialog(found, total);
@@ -2355,7 +2356,7 @@ public class AdminGUI extends JFrame {
     private void executeVehicleSearch() {
         String q = txtSearchPlate.getText().trim();
         if (q.isEmpty() || q.startsWith("Ketik plat")) {
-            lblSearchResult.setText("<html><span style='color:#94a3b8;'>Ketik plat nomor atau merk kendaraan untuk mencari.</span></html>");
+            lblSearchResult.setText("<html><span style='color:#4b5563;'>Ketik plat nomor atau merk kendaraan untuk mencari.</span></html>");
             return;
         }
         String cleanQ = q.replaceAll("\\s+", "").toUpperCase();
@@ -2375,13 +2376,13 @@ public class AdminGUI extends JFrame {
             searchedSlotId = found.getIdSlot();
             Kendaraan k = found.getKendaraanParkir();
             lblSearchResult.setText(String.format(
-                "<html><b style='color:#f59e0b;'>Ditemukan:</b> %s (%s) di <b style='color:#38bdf8;'>Slot %s (Lantai %d)</b></html>",
+                "<html><b style='color:#d97706;'>Ditemukan:</b> %s (%s) di <b style='color:#0284c7;'>Slot %s (Lantai %d)</b></html>",
                 k.getMerk(), k.getPlatNomor(), found.getIdSlot(), found.getLantai()));
             onSlotClick(found);
             renderBlueprint();
         } else {
             searchedSlotId = null;
-            lblSearchResult.setText("<html><span style='color:#ef4444;'>Kendaraan \"" + q + "\" tidak ditemukan sedang parkir.</span></html>");
+            lblSearchResult.setText("<html><span style='color:#dc2626;'>Kendaraan \"" + q + "\" tidak ditemukan sedang parkir.</span></html>");
             renderBlueprint();
         }
     }
@@ -2437,12 +2438,12 @@ public class AdminGUI extends JFrame {
             btnGateModeToggle.setText("🏁 KELUAR");
             btnGateModeToggle.setBackground(AMBER);
             cctvHudText = "MEMANTAU GERBANG KELUAR...";
-            lblCCTVStatus.setText("<html><span style='color:#f59e0b;font-size:10px;'>🏁 <b>Mode Gerbang KELUAR:</b> Kamera memindai kendaraan yang hendak keluar.</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#d97706;font-size:10px;'>🏁 <b>Mode Gerbang KELUAR:</b> Kamera memindai kendaraan yang hendak keluar.</span></html>");
         } else {
             btnGateModeToggle.setText("🚪 MASUK");
             btnGateModeToggle.setBackground(BLUE);
             cctvHudText = "MEMANTAU GERBANG MASUK...";
-            lblCCTVStatus.setText("<html><span style='color:#38bdf8;font-size:10px;'>🚪 <b>Mode Gerbang MASUK:</b> Kamera memindai kendaraan masuk.</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#0284c7;font-size:10px;'>🚪 <b>Mode Gerbang MASUK:</b> Kamera memindai kendaraan masuk.</span></html>");
         }
         if (currentCCTVFrame != null) {
             drawCCTVScreen(currentCCTVFrame, false, cctvHudText);
@@ -2456,8 +2457,8 @@ public class AdminGUI extends JFrame {
         if (aktif == null) {
             cctvVehicleDetected = false;
             cctvHudText = "KELUAR GAGAL: " + plat + " TIDAK DITEMUKAN";
-            lblCCTVStatus.setText("<html><span style='color:#ef4444;font-size:10px;'>⚠️ Kendaraan plat <b>" + plat + "</b> tidak ditemukan sedang parkir di dalam gedung!</span></html>");
-            lblNotice.setText("<html><span style='color:#ef4444;'>⚠️ Mobil plat <b>" + plat + "</b> tidak memiliki tiket parkir aktif.</span></html>");
+            lblCCTVStatus.setText("<html><span style='color:#dc2626;font-size:10px;'>⚠️ Kendaraan plat <b>" + plat + "</b> tidak ditemukan sedang parkir di dalam gedung!</span></html>");
+            lblNotice.setText("<html><span style='color:#dc2626;'>⚠️ Mobil plat <b>" + plat + "</b> tidak memiliki tiket parkir aktif.</span></html>");
             startCCTVCooldownCountdown(4);
             return;
         }
@@ -2482,8 +2483,8 @@ public class AdminGUI extends JFrame {
 
         cctvVehicleDetected = false;
         cctvHudText = "KELUAR TERDETEKSI: " + plat + " (" + aktif.getNomorTiket() + ")";
-        lblCCTVStatus.setText("<html><span style='color:#f59e0b;font-size:10px;'>🏁 <b>" + plat + "</b> di Gerbang Keluar! Tagihan siap dibayar via QRIS / E-Money.</span></html>");
-        lblNotice.setText("<html><span style='color:#f59e0b;'>🏁 Kendaraan <b>" + plat + "</b> siap check-out. QR Code pembayaran telah dibuka.</span></html>");
+        lblCCTVStatus.setText("<html><span style='color:#d97706;font-size:10px;'>🏁 <b>" + plat + "</b> di Gerbang Keluar! Tagihan siap dibayar via QRIS / E-Money.</span></html>");
+        lblNotice.setText("<html><span style='color:#d97706;'>🏁 Kendaraan <b>" + plat + "</b> siap check-out. QR Code pembayaran telah dibuka.</span></html>");
         startCCTVCooldownCountdown(8);
 
         // Munculkan popup QR Code pembayaran otomatis
@@ -2614,7 +2615,7 @@ public class AdminGUI extends JFrame {
         tf.setCaretColor(T1);
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
+            BorderFactory.createLineBorder(BORDER_DARK, 1),
             new EmptyBorder(5, 8, 5, 8)));
         return tf;
     }
@@ -2623,24 +2624,27 @@ public class AdminGUI extends JFrame {
         cb.setBackground(FIELD_BG);
         cb.setForeground(T1);
         cb.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        cb.setBorder(BorderFactory.createLineBorder(BORDER, 1));
+        cb.setBorder(BorderFactory.createLineBorder(BORDER_DARK, 1));
         cb.setPreferredSize(new Dimension(cb.getPreferredSize().width, 28));
     }
 
     private JButton button(String text, Color bg, Color fg) {
         JButton btn = new JButton(text);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btn.setBackground(bg);
-        btn.setForeground(fg);
+        boolean isNeutral = (bg == CARD_BG || bg == FIELD_BG);
+        Color actualBg = isNeutral ? new Color(238, 241, 245) : bg;
+        Color actualFg = isNeutral ? T1 : fg;
+        btn.setBackground(actualBg);
+        btn.setForeground(actualFg);
         btn.setFocusPainted(false);
+        Color bd = isNeutral ? BORDER_DARK : actualBg.darker();
         btn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(bg == CARD_BG || bg == FIELD_BG ? BORDER : bg.darker(), 1),
+            BorderFactory.createLineBorder(bd, 1),
             new EmptyBorder(6, 12, 6, 12)));
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        Color orig = bg;
         btn.addMouseListener(new MouseAdapter() {
-            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(bg.darker()); }
-            @Override public void mouseExited(MouseEvent e)  { btn.setBackground(orig); }
+            @Override public void mouseEntered(MouseEvent e) { btn.setBackground(actualBg.darker()); }
+            @Override public void mouseExited(MouseEvent e)  { btn.setBackground(actualBg); }
         });
         return btn;
     }
@@ -2656,24 +2660,24 @@ public class AdminGUI extends JFrame {
     public static void main(String[] args) {
         try {
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            UIManager.put("TabbedPane.background", CARD_BG);
+            UIManager.put("TabbedPane.background", new Color(240, 242, 245));
             UIManager.put("TabbedPane.foreground", T1);
-            UIManager.put("TabbedPane.selected", FIELD_BG);
-            UIManager.put("TabbedPane.contentAreaColor", CARD_BG);
+            UIManager.put("TabbedPane.selected", Color.WHITE);
+            UIManager.put("TabbedPane.contentAreaColor", Color.WHITE);
             UIManager.put("TabbedPane.borderHighlightColor", BORDER);
             UIManager.put("TabbedPane.darkShadow", BORDER);
-            UIManager.put("TabbedPane.light", CARD_BG);
-            UIManager.put("TabbedPane.focus", CARD_BG);
+            UIManager.put("TabbedPane.light", Color.WHITE);
+            UIManager.put("TabbedPane.focus", Color.WHITE);
             UIManager.put("Panel.background", BG);
-            UIManager.put("OptionPane.background", CARD_BG);
+            UIManager.put("OptionPane.background", Color.WHITE);
             UIManager.put("OptionPane.messageForeground", T1);
-            UIManager.put("Table.background", FIELD_BG);
+            UIManager.put("Table.background", Color.WHITE);
             UIManager.put("Table.foreground", T1);
             UIManager.put("Table.gridColor", BORDER);
-            UIManager.put("TableHeader.background", CARD_BG);
-            UIManager.put("TableHeader.foreground", T2);
-            UIManager.put("ScrollPane.background", CARD_BG);
-            UIManager.put("Viewport.background", CARD_BG);
+            UIManager.put("TableHeader.background", new Color(243, 244, 246));
+            UIManager.put("TableHeader.foreground", T1);
+            UIManager.put("ScrollPane.background", Color.WHITE);
+            UIManager.put("Viewport.background", Color.WHITE);
         } catch (Exception ignored) {}
         SwingUtilities.invokeLater(() -> new AdminGUI().setVisible(true));
     }
