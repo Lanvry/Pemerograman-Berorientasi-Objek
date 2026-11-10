@@ -208,73 +208,98 @@ public class AdminGUI extends JFrame {
         h.setBackground(CARD_BG);
         h.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
-            new EmptyBorder(10, 18, 10, 18)));
+            new EmptyBorder(10, 20, 10, 20)));
 
         JPanel brand = new JPanel(new FlowLayout(FlowLayout.LEFT, 12, 0));
         brand.setOpaque(false);
 
-        JLabel icon = new JLabel("P", SwingConstants.CENTER);
-        icon.setOpaque(true);
-        icon.setBackground(BLUE);
+        JLabel icon = new JLabel("P", SwingConstants.CENTER) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(PRIMARY);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        icon.setOpaque(false);
         icon.setForeground(WHITE);
-        icon.setFont(new Font("Segoe UI", Font.BOLD, 17));
-        icon.setPreferredSize(new Dimension(34, 34));
+        icon.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        icon.setPreferredSize(new Dimension(30, 30));
 
         JLabel name = new JLabel(String.format(
-            "<html><b style='font-size:15px;color:%s;'>SmartParkir</b> "
-            + "<span style='font-size:11px;color:%s;'>— Sistem Manajemen Parkir & Monitoring Gerbang</span></html>",
+            "<html><b style='font-size:15px;color:%s;letter-spacing:-0.2px;'>SmartParkir</b> "
+            + "<span style='font-size:11px;color:%s;'>&nbsp;•&nbsp; Manajemen Parkir & Monitoring Gerbang</span></html>",
             hex(T1), hex(T2)));
         name.setForeground(T1);
         brand.add(icon);
         brand.add(name);
 
-        JPanel pills = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
-        pills.setOpaque(false);
+        JPanel rightBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        rightBox.setOpaque(false);
+
+        JButton btnCameraHeader = button("⚙ Pengaturan", Color.WHITE, T1);
+        btnCameraHeader.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        btnCameraHeader.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(BORDER, 1),
+            new EmptyBorder(5, 12, 5, 12)));
+        btnCameraHeader.addActionListener(e -> openCameraScannerDialog());
+
+        // Unified sleek metrics container
+        JPanel statsGroup = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(Color.WHITE);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(BORDER);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        statsGroup.setOpaque(false);
+        statsGroup.setBorder(new EmptyBorder(5, 14, 5, 14));
 
         lblTersedia   = pill("Tersedia", "-", T1);
         lblTerisi     = pill("Terisi",   "-", RED);
         lblPendapatan = pill("Kas",      "-", T1);
         lblDBStatus   = pill("Database", "Online", T1);
 
-        JButton btnCameraHeader = button("Pengaturan", FIELD_BG, T1);
-        btnCameraHeader.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        btnCameraHeader.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(5, 10, 5, 10)));
-        btnCameraHeader.addActionListener(e -> openCameraScannerDialog());
+        statsGroup.add(lblTersedia);
+        statsGroup.add(createNavDivider());
+        statsGroup.add(lblTerisi);
+        statsGroup.add(createNavDivider());
+        statsGroup.add(lblPendapatan);
+        statsGroup.add(createNavDivider());
+        statsGroup.add(lblDBStatus);
 
-        pills.add(btnCameraHeader);
-        pills.add(Box.createHorizontalStrut(6));
-        pills.add(lblTersedia);
-        pills.add(lblTerisi);
-        pills.add(lblPendapatan);
-        pills.add(lblDBStatus);
+        rightBox.add(btnCameraHeader);
+        rightBox.add(statsGroup);
 
-        h.add(brand, BorderLayout.WEST);
-        h.add(pills,  BorderLayout.EAST);
+        h.add(brand,    BorderLayout.WEST);
+        h.add(rightBox, BorderLayout.EAST);
         return h;
     }
 
     private JLabel pill(String label, String val, Color valColor) {
         JLabel lbl = new JLabel(fmtPill(label, val, valColor), SwingConstants.CENTER);
-        lbl.setOpaque(true);
-        lbl.setBackground(CARD_BG);
-        lbl.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(5, 10, 5, 10)));
+        lbl.setOpaque(false);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         return lbl;
     }
 
     private JLabel createNavDivider() {
-        JLabel d = new JLabel("|");
-        d.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        d.setForeground(BORDER);
+        JLabel d = new JLabel("│");
+        d.setFont(new Font("Segoe UI", Font.PLAIN, 10));
+        d.setForeground(new Color(210, 215, 222));
         return d;
     }
 
     private String fmtPill(String label, String val, Color c) {
         return String.format(
-            "<html><span style='color:%s;font-size:10px;'>%s: </span>"
+            "<html><span style='color:%s;font-size:11px;'>%s: </span>"
             + "<b style='font-size:11px;color:%s;'>%s</b></html>",
             hex(T2), label, hex(c), val);
     }
