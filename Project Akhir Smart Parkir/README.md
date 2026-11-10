@@ -286,3 +286,62 @@ Untuk menjamin keandalan sistem dalam kondisi nyata (*fail-safe operational*), s
 | **`FormatPlatTidakValidException`** | Plat nomor kosong atau format karakter rusak dari kamera. | Mencegah pembuatan objek `Kendaraan` ilegal dan query sampah ke MySQL. |
 
 Seluruh exception ditangani secara anggun pada workstation `AdminGUI.java` dengan umpan balik visual yang informatif, audio/warning alert yang akurat, serta membersihkan resource pada blok `finally`.
+
+---
+
+## 10. Pengelolaan Kumpulan Objek & Collection Management (Materi Modul 11 PBO)
+
+Sistem menerapkan arsitektur koleksi berbasis `java.util.List` dan `java.util.ArrayList` dengan Generics (`List<Kendaraan>` dan `List<SlotParkir>`), dilengkapi:
+1. **Pencegahan Kode Unik Duplikat**: Validasi plat nomor ganda pada `tambahKendaraan()`.
+2. **Pencarian Cepat Berbasis Kunci Unik**: Method `cariKendaraan(plat)` case-insensitive dan whitespace-tolerant.
+3. **Proteksi Integritas Hapus**: Method `hapusKendaraan(plat)` memblokir penghapusan unit armada yang statusnya sedang parkir aktif di petak gedung.
+4. **Pertahanan Enkapsulasi**: Method `getDaftarKendaraan()` dan `getDaftarSlot()` mengembalikan `Collections.unmodifiableList()` untuk mencegah mutasi liar dari luar class aggregate.
+
+---
+
+## 11. File Persistence & Pembacaan Data Berkas (Materi Modul 12 PBO)
+
+SmartParkir mengintegrasikan persistensi data berbasis berkas teks (*flat file persistence*) yang sepenuhnya mematuhi standar **Modul 12 PBO**:
+
+### A. Karakteristik Arsitektur & Teknologi:
+1. **Modern I/O API (NIO.2)**:
+   - Menggunakan pustaka standar `java.nio.file.Files`, `java.nio.file.Path`, dan `java.nio.file.Paths`.
+   - Standar encoding universal `StandardCharsets.UTF_8` dengan opsi penulisan aman `StandardOpenOption.CREATE`, `TRUNCATE_EXISTING`, `WRITE`.
+2. **Dedicated Repository Class**:
+   - `model.KendaraanFileRepository.java` bertindak sebagai layer data access berkas terisolasi.
+   - Menyediakan method `simpan(Path lokasi, List<Kendaraan> data)` dan `muat(Path lokasi)`.
+   - Nilai default path terstandar: `armada_kendaraan.txt`.
+3. **Format Serialisasi Terdelimitasi Pipe (`|`)**:
+   - Format baris: `PLAT_NOMOR|TIPE|MERK` (contoh: `B 1234 ABC|MOBIL|Toyota Avanza`).
+   - Dilengkapi baris komentar metadata berawalan `#` dan penanganan baris kosong secara otomatis.
+   - **Proteksi Injeksi Karakter Terlarang**: Method simpan memvalidasi atribut agar tidak mengandung karakter delimiter (`|`, `\n`, `\r`).
+4. **Validasi Domain & Integritas Parsing**:
+   - Memvalidasi presisi 3 token per baris. Baris dengan token kurang atau lebih akan ditolak.
+   - Mengintegrasikan pengecekan format plat nomor domain (`Kendaraan.validasiFormatPlat`).
+   - Mendeteksi plat nomor duplikat di dalam berkas sebelum objek dibentuk.
+5. **Prinsip Atomic State Preservation (Atomic Swap & Atomic Rollback)**:
+   - Data berkas dimuat ke dalam buffer koleksi sementara terlebih dahulu.
+   - Penggantian koleksi aktif pada `GedungParkir` hanya dilakukan jika seluruh baris berhasil divalidasi 100% tanpa galat.
+   - Jika berkas korup pada baris ke-N, sistem melempar `IOException` dan membatalkan transaksi (*atomic rollback*), memastikan data armada yang sedang aktif di memori tidak rusak atau hilang.
+
+### B. Integrasi Antarmuka GUI (Workstation AdminGUI):
+Pada tab **"Koleksi Armada"**, operator disediakan 2 tombol interaktif:
+- 📥 **"Impor dari File"**: Membuka dialog `JFileChooser` untuk memilih file `.txt`. Sistem meminta konfirmasi sebelum memperbarui armada, memvalidasi berkas, menerapkan *atomic rollback* jika ada baris korup, menyinkronkan data ke tabel UI, dan memperbarui label total unit seketika.
+- 📤 **"Ekspor ke File"**: Membuka dialog penyimpanan `JFileChooser` untuk mengekspor seluruh armada aktif ke file teks berformat UTF-8 pipe-delimited.
+
+### C. Eksekusi Pengujian Modul 12 (FilePersistenceTest):
+```bash
+# Kompilasi & Jalankan Unit Test File Persistence
+javac -cp "bin:lib/*" -d bin SourceCode/model/*.java SourceCode/test/*.java SourceCode/*.java
+java -cp "bin:lib/*" test.FilePersistenceTest
+```
+
+**Ringkasan 8 Skenario Pengujian Unit Test:**
+- `[TEST 1]` Serialisasi pipe-delimited UTF-8 ke file -> **PASSED**
+- `[TEST 2]` Deserialisasi dan rekonstruksi objek `Kendaraan` -> **PASSED**
+- `[TEST 3]` Pencegahan karakter terlarang delimiter injection (`|`, newline) -> **PASSED**
+- `[TEST 4]` Penolakan format salah (jumlah kolom != 3) -> **PASSED**
+- `[TEST 5]` Penolakan format plat cacat via `FormatPlatTidakValidException` -> **PASSED**
+- `[TEST 6]` Penolakan plat nomor duplikat dalam berkas -> **PASSED**
+- `[TEST 7]` Penanganan berkas tidak ditemukan (non-existent path) -> **PASSED**
+- `[TEST 8]` **Atomic State Preservation**: Memastikan armada aktif tidak rusak saat file impor korup -> **PASSED**

@@ -1,0 +1,14 @@
+# ==========================================================================
+# DATA REPOSITORI ARMADA KENDARAAN SMART PARKIR (MODUL 12)
+# FORMAT: PLAT_NOMOR|TIPE|MERK
+# ==========================================================================
+B 1234 ABC|MOBIL|Toyota Avanza
+B 6789 MTR|MOTOR|Honda Vario
+L 9988 XYZ|MOBIL|Honda HR-V
+B 1010 EV|MOBIL_LISTRIK|Hyundai Ioniq 5
+D 4321 EF|MOBIL|Mitsubishi Xpander
+N 8888 AA|MOTOR|Yamaha NMAX
+B 2026 PENS|MOBIL_LISTRIK|Wuling Air EV
+W 1234 CD|MOBIL|Toyota Innova Zenix
+L 3344 KK|MOTOR|Honda PCX 160
+B 7777 TES|MOBIL_LISTRIK|Tesla Model 3

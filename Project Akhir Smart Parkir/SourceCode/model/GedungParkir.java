@@ -1,5 +1,7 @@
 package model;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -181,6 +183,65 @@ public class GedungParkir {
 
     public int getTotalKendaraanTerdaftar() {
         return daftarKendaraan.size();
+    }
+
+    // =========================================================================
+    // MODUL 12: PERSISTENSI FILE DATA ARMADA KENDARAAN (NIO.2 & ATOMIC SWAP)
+    // =========================================================================
+
+    /**
+     * Menyimpan seluruh koleksi armada kendaraan terdaftar ke dalam berkas teks.
+     * Menggunakan KendaraanFileRepository dengan encoding UTF-8 dan format delimiter pipe '|'.
+     *
+     * @param lokasi path berkas tujuan
+     * @throws IOException jika terjadi galat penulisan berkas
+     */
+    public void simpanArmadaKeFile(Path lokasi) throws IOException {
+        if (lokasi == null) {
+            throw new IllegalArgumentException("Path lokasi berkas tidak boleh null.");
+        }
+        KendaraanFileRepository.simpan(lokasi, this.daftarKendaraan);
+    }
+
+    /**
+     * Menyimpan seluruh armada kendaraan ke lokasi berkas default (armada_kendaraan.txt).
+     */
+    public void simpanArmadaKeFile() throws IOException {
+        simpanArmadaKeFile(KendaraanFileRepository.DEFAULT_PATH);
+    }
+
+    /**
+     * Memuat armada kendaraan dari berkas teks ke dalam memori dengan prinsip Atomic Swap.
+     * Koleksi aktif hanya diperbarui jika seluruh baris berhasil divalidasi tanpa galat.
+     * Jika terjadi kegagalan/korupsi data pada file, state koleksi sebelumnya tetap utuh (Atomic Rollback).
+     *
+     * @param lokasi path berkas sumber
+     * @return jumlah kendaraan yang berhasil dimuat
+     * @throws IOException jika berkas tidak ditemukan, format salah, atau data domain tidak valid
+     */
+    public int muatArmadaDariFile(Path lokasi) throws IOException {
+        if (lokasi == null) {
+            throw new IllegalArgumentException("Path lokasi berkas tidak boleh null.");
+        }
+        List<Kendaraan> armadaBaru = KendaraanFileRepository.muat(lokasi);
+
+        // Atomic Swap: Semua baris valid, sekarang aman memperbarui koleksi aktif
+        this.daftarKendaraan.clear();
+        this.daftarKendaraan.addAll(armadaBaru);
+
+        // Sinkronisasi data armada baru ke database MySQL
+        for (Kendaraan k : armadaBaru) {
+            DatabaseManager.simpanKendaraan(k);
+        }
+
+        return armadaBaru.size();
+    }
+
+    /**
+     * Memuat armada kendaraan dari lokasi berkas default (armada_kendaraan.txt).
+     */
+    public int muatArmadaDariFile() throws IOException {
+        return muatArmadaDariFile(KendaraanFileRepository.DEFAULT_PATH);
     }
 
     public int getSisaKuota(String tipeKendaraan) {

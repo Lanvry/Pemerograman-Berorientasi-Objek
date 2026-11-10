@@ -1,6 +1,8 @@
 import model.*;
 import model.AIVisionService.DetectionResult;
 import java.util.List;
+import java.io.IOException;
+import java.nio.file.Path;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -1321,8 +1323,8 @@ public class AdminGUI extends JFrame {
 
         botBox.add(formAdd, BorderLayout.CENTER);
 
-        JPanel btnActionRow = new JPanel(new GridLayout(1, 2, 6, 0));
-        btnActionRow.setOpaque(false);
+        JPanel btnActions = new JPanel(new GridLayout(2, 2, 6, 4));
+        btnActions.setOpaque(false);
 
         JButton btnDaftar = button("+ Daftarkan Armada", TEAL, WHITE);
         btnDaftar.setFont(new Font("Segoe UI", Font.BOLD, 10));
@@ -1332,9 +1334,21 @@ public class AdminGUI extends JFrame {
         btnHapus.setFont(new Font("Segoe UI", Font.BOLD, 10));
         btnHapus.addActionListener(e -> handleHapusKendaraanCollection());
 
-        btnActionRow.add(btnDaftar);
-        btnActionRow.add(btnHapus);
-        botBox.add(btnActionRow, BorderLayout.SOUTH);
+        JButton btnImpor = button("📥 Impor dari File", BLUE, WHITE);
+        btnImpor.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnImpor.setToolTipText("Muat armada dari berkas teks (Modul 12 File Persistence)");
+        btnImpor.addActionListener(e -> handleImporArmadaFile());
+
+        JButton btnEkspor = button("📤 Ekspor ke File", PURPLE, WHITE);
+        btnEkspor.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        btnEkspor.setToolTipText("Simpan seluruh koleksi armada ke berkas teks (Modul 12 File Persistence)");
+        btnEkspor.addActionListener(e -> handleEksporArmadaFile());
+
+        btnActions.add(btnDaftar);
+        btnActions.add(btnHapus);
+        btnActions.add(btnImpor);
+        btnActions.add(btnEkspor);
+        botBox.add(btnActions, BorderLayout.SOUTH);
 
         p.add(botBox, BorderLayout.SOUTH);
         return p;
@@ -1419,6 +1433,74 @@ public class AdminGUI extends JFrame {
             warn("PROTEKSI OPERASIONAL DITOLAK: " + ex.getMessage());
         } catch (Exception ex) {
             warn("Kesalahan: " + ex.getMessage());
+        }
+    }
+
+    private void handleImporArmadaFile() {
+        JFileChooser chooser = new JFileChooser(new File("."));
+        chooser.setDialogTitle("Impor Koleksi Armada dari File (Modul 12)");
+        chooser.setSelectedFile(new File("armada_kendaraan.txt"));
+        chooser.setFileFilter(new FileNameExtensionFilter("Text File (*.txt)", "txt"));
+
+        int res = chooser.showOpenDialog(this);
+        if (res == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (file == null) return;
+
+            int konfirm = JOptionPane.showConfirmDialog(this,
+                "Memuat armada dari file akan mengganti koleksi armada saat ini (" 
+                + gedung.getTotalKendaraanTerdaftar() + " unit).\n"
+                + "File target: " + file.getName() + "\n\nLanjutkan proses impor?",
+                "Konfirmasi Impor Armada", JOptionPane.YES_NO_OPTION);
+            if (konfirm != JOptionPane.YES_OPTION) return;
+
+            try {
+                int total = gedung.muatArmadaDariFile(file.toPath());
+                refreshTabelKendaraan(null);
+                JOptionPane.showMessageDialog(this,
+                    "Berhasil mengimpor " + total + " unit armada dari berkas:\n" + file.getAbsolutePath(),
+                    "Impor Berhasil", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                warn("GAGAL MEMUAT FILE (ATOMIC ROLLBACK AKTIF):\n" + ex.getMessage() 
+                    + "\n\nState koleksi armada sebelumnya tetap terjaga utuh.");
+            } catch (Exception ex) {
+                warn("Kesalahan saat membaca file: " + ex.getMessage());
+            }
+        }
+    }
+
+    private void handleEksporArmadaFile() {
+        if (gedung.getTotalKendaraanTerdaftar() == 0) {
+            warn("Koleksi armada kosong! Tidak ada data untuk diekspor.");
+            return;
+        }
+
+        JFileChooser chooser = new JFileChooser(new File("."));
+        chooser.setDialogTitle("Ekspor Koleksi Armada ke File (Modul 12)");
+        chooser.setSelectedFile(new File("armada_kendaraan.txt"));
+        chooser.setFileFilter(new FileNameExtensionFilter("Text File (*.txt)", "txt"));
+
+        int res = chooser.showSaveDialog(this);
+        if (res == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if (file == null) return;
+            if (!file.getName().toLowerCase().endsWith(".txt")) {
+                file = new File(file.getAbsolutePath() + ".txt");
+            }
+
+            try {
+                gedung.simpanArmadaKeFile(file.toPath());
+                JOptionPane.showMessageDialog(this,
+                    "Berhasil mengekspor " + gedung.getTotalKendaraanTerdaftar() + " unit armada ke berkas:\n" 
+                    + file.getAbsolutePath(),
+                    "Ekspor Berhasil", JOptionPane.INFORMATION_MESSAGE);
+            } catch (IOException ex) {
+                warn("GAGAL MENYIMPAN FILE:\n" + ex.getMessage());
+            } catch (IllegalArgumentException ex) {
+                warn("DATA TIDAK VALID UNTUK DISIMPAN:\n" + ex.getMessage());
+            } catch (Exception ex) {
+                warn("Kesalahan saat menyimpan file: " + ex.getMessage());
+            }
         }
     }
 
