@@ -13,6 +13,9 @@ public class PromoWeekendDiskonStrategy implements DiskonStrategy {
 
     @Override
     public double hitungDiskon(Kendaraan k, double tarifAwal, int durasi) {
+        if (durasi < 0) {
+            throw new IllegalArgumentException("Durasi parkir tidak boleh bernilai negatif!");
+        }
         if (tarifAwal > 0) {
             return tarifAwal * PERSENTASE_DISKON;
         }

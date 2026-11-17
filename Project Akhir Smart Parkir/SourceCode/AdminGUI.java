@@ -1788,35 +1788,7 @@ public class AdminGUI extends JFrame {
             String metode  = (String) cbMetode.getSelectedItem();
             double uang    = Double.parseDouble(txtUangBayar.getText().trim());
 
-            KarcisParkir found = null;
-            for (KarcisParkir t : gedung.getRiwayatTransaksi())
-                if (t.getNomorTiket().equalsIgnoreCase(noTiket)) { found = t; break; }
-
-            if (found == null) { warn("Tiket tidak ditemukan."); return; }
-            if (found.isSudahDibayar()) { warn("Tiket ini sudah lunas."); return; }
-
-            double tagihanHitung = hitungTotalTagihanTiket(found, jamKeluar);
-            if ("QRIS".equalsIgnoreCase(metode)) {
-                showQRISPaymentDialog(found, jamKeluar, tagihanHitung);
-                return;
-            }
-            if ("VIRTUAL_ACCOUNT".equalsIgnoreCase(metode) || "VA".equalsIgnoreCase(metode)) {
-                showVirtualAccountDialog(found, jamKeluar, tagihanHitung);
-                return;
-            }
-
-            IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
-            DiskonStrategy strategy = getSelectedDiskonStrategy();
-            boolean ok = gedung.prosesKeluar(found, jamKeluar, processor, uang, strategy);
-            if (ok) {
-                animGate(true, "TERBUKA KELUAR");
-                selectedSlot  = null;
-                selectedTiket = null;
-                lblNotice.setText("<html><span style='color:#16a34a;'>Check-out berhasil. Slot kosong kembali.</span></html>");
-                lblTagihan.setText("Rp 0");
-                syncAll();
-                showReceiptDialog(found, uang);
-            }
+            prosesTransaksiKeluar(noTiket, jamKeluar, metode, uang, false);
         } catch (NumberFormatException ex) {
             warn("Format angka salah: Harap masukkan jam keluar dan nominal bayar berupa angka bulat!");
         } catch (PembayaranKurangException ex) {
@@ -1831,42 +1803,8 @@ public class AdminGUI extends JFrame {
     private void quickPay(String metode) {
         try {
             String noTiket = txtTiket.getText().trim();
-            KarcisParkir found = null;
-            for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
-                if (t.getNomorTiket().equalsIgnoreCase(noTiket) && !t.isSudahDibayar()) {
-                    found = t;
-                    break;
-                }
-            }
-            if (found == null) {
-                warn("Silakan pilih kendaraan yang sedang parkir terlebih dahulu.");
-                return;
-            }
-
             int jamKeluar = Integer.parseInt(txtJamKeluar.getText().trim());
-            double total = hitungTotalTagihanTiket(found, jamKeluar);
-
-            if ("QRIS".equalsIgnoreCase(metode)) {
-                showQRISPaymentDialog(found, jamKeluar, total);
-                return;
-            }
-            if ("VIRTUAL_ACCOUNT".equalsIgnoreCase(metode) || "VA".equalsIgnoreCase(metode)) {
-                showVirtualAccountDialog(found, jamKeluar, total);
-                return;
-            }
-
-            IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
-            DiskonStrategy strategy = getSelectedDiskonStrategy();
-            boolean ok = gedung.prosesKeluar(found, jamKeluar, processor, total, strategy);
-            if (ok) {
-                animGate(true, "TERBUKA KELUAR");
-                selectedSlot  = null;
-                selectedTiket = null;
-                lblNotice.setText("<html><span style='color:#16a34a;'>Check-out sukses dengan " + metode + ". Gate terbuka!</span></html>");
-                lblTagihan.setText("Rp 0");
-                syncAll();
-                showReceiptDialog(found, total);
-            }
+            prosesTransaksiKeluar(noTiket, jamKeluar, metode, -1.0, true);
         } catch (NumberFormatException ex) {
             warn("Format jam keluar tidak valid!");
         } catch (PembayaranKurangException ex) {
@@ -1876,6 +1814,65 @@ public class AdminGUI extends JFrame {
         } catch (Exception ex) {
             warn("Gagal memproses pembayaran cepat: " + ex.getMessage());
         }
+    }
+
+    /**
+     * Refactoring P14 (Extract Method & Introduce Parameter Object CheckOutRequest):
+     * Menyatukan alur verifikasi tiket, pengecekan dialog khusus (QRIS/VA), dan eksekusi pembayaran.
+     */
+    private void prosesTransaksiKeluar(String noTiket, int jamKeluar, String metode, double uangBayar, boolean isQuickPay) throws Exception {
+        KarcisParkir found = cariTiketByNomor(noTiket);
+        if (found == null) {
+            warn(isQuickPay ? "Silakan pilih kendaraan yang sedang parkir terlebih dahulu." : "Tiket tidak ditemukan.");
+            return;
+        }
+        if (found.isSudahDibayar()) {
+            warn("Tiket ini sudah lunas.");
+            return;
+        }
+
+        double tagihanHitung = hitungTotalTagihanTiket(found, jamKeluar);
+        if ("QRIS".equalsIgnoreCase(metode)) {
+            showQRISPaymentDialog(found, jamKeluar, tagihanHitung);
+            return;
+        }
+        if ("VIRTUAL_ACCOUNT".equalsIgnoreCase(metode) || "VA".equalsIgnoreCase(metode)) {
+            showVirtualAccountDialog(found, jamKeluar, tagihanHitung);
+            return;
+        }
+
+        double nominalBayar = isQuickPay ? tagihanHitung : uangBayar;
+        IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
+        DiskonStrategy strategy = getSelectedDiskonStrategy();
+        CheckOutRequest request = new CheckOutRequest(found, jamKeluar, processor, nominalBayar, strategy);
+
+        boolean ok = gedung.prosesKeluar(request);
+        if (ok) {
+            String statusMsg = isQuickPay
+                    ? "<html><span style='color:#16a34a;'>Check-out sukses dengan " + metode + ". Gate terbuka!</span></html>"
+                    : "<html><span style='color:#16a34a;'>Check-out berhasil. Slot kosong kembali.</span></html>";
+            selesaikanUICheckout(found, nominalBayar, statusMsg);
+        }
+    }
+
+    private KarcisParkir cariTiketByNomor(String noTiket) {
+        if (noTiket == null || noTiket.isEmpty()) return null;
+        for (KarcisParkir t : gedung.getRiwayatTransaksi()) {
+            if (t.getNomorTiket().equalsIgnoreCase(noTiket)) {
+                return t;
+            }
+        }
+        return null;
+    }
+
+    private void selesaikanUICheckout(KarcisParkir tiket, double nominalBayar, String statusMsg) {
+        animGate(true, "TERBUKA KELUAR");
+        selectedSlot = null;
+        selectedTiket = null;
+        lblNotice.setText(statusMsg);
+        lblTagihan.setText("Rp 0");
+        syncAll();
+        showReceiptDialog(tiket, nominalBayar);
     }
 
     private DiskonStrategy getSelectedDiskonStrategy() {
@@ -2042,16 +2039,11 @@ public class AdminGUI extends JFrame {
                 pollTimer.stop();
                 dlg.dispose();
                 try {
-                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, new QRISPaymentProcessor("QRIS_MIDTRANS"), totalTagihan, getSelectedDiskonStrategy());
+                    CheckOutRequest req = new CheckOutRequest(tiket, jamKeluar, new QRISPaymentProcessor("QRIS_MIDTRANS"), totalTagihan, getSelectedDiskonStrategy());
+                    boolean ok = gedung.prosesKeluar(req);
                     if (ok) {
                         DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, "QRIS_MIDTRANS");
-                        animGate(true, "TERBUKA KELUAR");
-                        selectedSlot = null;
-                        selectedTiket = null;
-                        lblNotice.setText("<html><span style='color:#16a34a;'>Pembayaran QRIS Midtrans Terkonfirmasi LUNAS! Portal terbuka.</span></html>");
-                        lblTagihan.setText("Rp 0");
-                        syncAll();
-                        showReceiptDialog(tiket, totalTagihan);
+                        selesaikanUICheckout(tiket, totalTagihan, "<html><span style='color:#16a34a;'>Pembayaran QRIS Midtrans Terkonfirmasi LUNAS! Portal terbuka.</span></html>");
                     }
                 } catch (Exception ex) {
                     warn("Gagal menyelesaikan transaksi: " + ex.getMessage());
@@ -2243,16 +2235,11 @@ public class AdminGUI extends JFrame {
                 try {
                     IPaymentProcessor proc = new VirtualAccountPaymentProcessor(paymentMethod);
                     DiskonStrategy strat = getSelectedDiskonStrategy();
-                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, proc, totalTagihan, strat);
+                    CheckOutRequest req = new CheckOutRequest(tiket, jamKeluar, proc, totalTagihan, strat);
+                    boolean ok = gedung.prosesKeluar(req);
                     if (ok) {
                         DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, paymentMethod);
-                        animGate(true, "TERBUKA KELUAR");
-                        selectedSlot = null;
-                        selectedTiket = null;
-                        lblNotice.setText("<html><span style='color:#16a34a;'>Pembayaran Virtual Account Berhasil LUNAS! Portal terbuka.</span></html>");
-                        lblTagihan.setText("Rp 0");
-                        syncAll();
-                        showReceiptDialog(tiket, totalTagihan);
+                        selesaikanUICheckout(tiket, totalTagihan, "<html><span style='color:#16a34a;'>Pembayaran Virtual Account Berhasil LUNAS! Portal terbuka.</span></html>");
                     }
                 } catch (Exception ex) {
                     warn("Gagal menyelesaikan transaksi: " + ex.getMessage());

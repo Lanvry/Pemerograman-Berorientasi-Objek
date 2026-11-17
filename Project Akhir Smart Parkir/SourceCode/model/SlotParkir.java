@@ -36,25 +36,21 @@ public class SlotParkir {
         if (k == null) {
             return false;
         }
-        // Slot MOBIL_LISTRIK hanya untuk MOBIL_LISTRIK
-        // Slot MOBIL untuk MOBIL atau MOBIL_LISTRIK
-        // Slot MOTOR hanya untuk MOTOR
         if ("MOTOR".equals(tipeSlot)) {
             return "MOTOR".equals(k.getTipe());
-        } else if ("MOBIL_LISTRIK".equals(tipeSlot)) {
+        }
+        if ("MOBIL_LISTRIK".equals(tipeSlot)) {
             return k.isMobilListrik();
-        } else if ("MOBIL".equals(tipeSlot)) {
+        }
+        if ("MOBIL".equals(tipeSlot)) {
             return "MOBIL".equals(k.getTipe()) || k.isMobilListrik();
         }
         return false;
     }
 
     public boolean isiSlot(Kendaraan k) {
-        if (this.terisi) {
-            return false; // Slot sudah terisi
-        }
-        if (!cocokUntuk(k)) {
-            return false; // Jenis kendaraan tidak sesuai dengan peruntukan slot
+        if (this.terisi || !cocokUntuk(k)) {
+            return false;
         }
         this.kendaraanParkir = k;
         this.terisi = true;

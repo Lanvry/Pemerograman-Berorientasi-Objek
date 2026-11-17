@@ -8,8 +8,9 @@ public class KapasitasPenuhException extends Exception {
     private final String tipeKendaraan;
 
     public KapasitasPenuhException(String tipeKendaraan) {
-        super(String.format("Kapasitas parkir untuk kategori '%s' sudah PENUH!", tipeKendaraan));
-        this.tipeKendaraan = tipeKendaraan;
+        super(String.format("Kapasitas parkir untuk kategori '%s' sudah PENUH!",
+                (tipeKendaraan != null && !tipeKendaraan.trim().isEmpty()) ? tipeKendaraan.trim().toUpperCase() : "SEMUA KATEGORI"));
+        this.tipeKendaraan = (tipeKendaraan != null && !tipeKendaraan.trim().isEmpty()) ? tipeKendaraan.trim().toUpperCase() : "SEMUA KATEGORI";
     }
 
     public KapasitasPenuhException(String tipeKendaraan, String pesan) {

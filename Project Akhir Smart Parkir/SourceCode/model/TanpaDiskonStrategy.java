@@ -11,6 +11,9 @@ public class TanpaDiskonStrategy implements DiskonStrategy {
 
     @Override
     public double hitungDiskon(Kendaraan k, double tarifAwal, int durasi) {
+        if (durasi < 0) {
+            throw new IllegalArgumentException("Durasi parkir tidak boleh bernilai negatif!");
+        }
         return 0.0;
     }
 

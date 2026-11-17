@@ -44,51 +44,77 @@ public class KarcisParkir {
         this.metodePembayaran = "-";
     }
 
-    public int hitungDurasi(int jamKeluarAktual) {
-        if (jamKeluarAktual < jamMasuk) {
-            // Simulasi melewati tengah malam (misal masuk 23, keluar 2 -> 3 jam)
-            return (24 - jamMasuk) + jamKeluarAktual;
+    public static void validasiWaktuOperasional(int jamMasuk, int jamKeluar) {
+        if (jamMasuk < 0 || jamMasuk > 23) {
+            throw new IllegalArgumentException("Jam masuk harus berada dalam rentang 0-23! Diberikan: " + jamMasuk);
         }
-        int durasi = jamKeluarAktual - jamMasuk;
-        return Math.max(1, durasi); // Minimal dihitung 1 jam
+        if (jamKeluar < 0 || jamKeluar > 24) {
+            throw new IllegalArgumentException("Jam keluar harus berada dalam rentang 0-24! Diberikan: " + jamKeluar);
+        }
+        if (jamKeluar < jamMasuk) {
+            throw new IllegalArgumentException(String.format(
+                "Anomali kronologis waktu: Jam keluar (%02d:00) tidak boleh lebih kecil dari jam masuk (%02d:00) pada hari yang sama!",
+                jamKeluar, jamMasuk));
+        }
+    }
+
+    public int hitungDurasi(int jamKeluarAktual) {
+        if (jamKeluarAktual < 0 || jamKeluarAktual > 24) {
+            throw new IllegalArgumentException("Jam keluar harus berada dalam rentang 0-24! Diberikan: " + jamKeluarAktual);
+        }
+        return DurasiParkir.of(jamMasuk, jamKeluarAktual).getTotalJam();
     }
 
     /**
-     * Menghitung tarif parkir dengan skema DiskonStrategy dinamis (OCP & LSP).
+     * Menghitung tarif parkir dengan skema DiskonStrategy dinamis (OCP & LSP)
+     * serta memanfaatkan Value Object DurasiParkir & BiayaParkir (P14 Refactoring).
      */
     public double hitungTarif(int jamKeluarAktual, double tarifJamPertama, double tarifPerJamBerikutnya, DiskonStrategy diskonStrategy) {
+        if (jamKeluarAktual < 0 || jamKeluarAktual > 24) {
+            throw new IllegalArgumentException("Jam keluar harus berada dalam rentang 0-24! Diberikan: " + jamKeluarAktual);
+        }
+        if (tarifJamPertama < 0 || tarifPerJamBerikutnya < 0) {
+            throw new IllegalArgumentException("Tarif parkir tidak boleh bernilai negatif!");
+        }
         this.jamKeluar = jamKeluarAktual;
-        int durasi = hitungDurasi(jamKeluarAktual);
+        DurasiParkir durasiParkir = DurasiParkir.of(jamMasuk, jamKeluarAktual);
+        int durasi = durasiParkir.getTotalJam();
 
         double subtotal = tarifJamPertama;
         if (durasi > 1) {
             subtotal += (durasi - 1) * tarifPerJamBerikutnya;
         }
 
-        if (diskonStrategy != null) {
-            this.potonganDiskon = diskonStrategy.hitungDiskon(kendaraan, subtotal, durasi);
-            this.namaDiskon = diskonStrategy.getNamaDiskon();
-        } else {
-            // Fallback default insentif EV jika strategy tidak disuplai
-            if (kendaraan.isMobilListrik()) {
-                this.potonganDiskon = subtotal * 0.20;
-                this.namaDiskon = "Insentif Hijau EV (Diskon 20%)";
-            } else {
-                this.potonganDiskon = 0.0;
-                this.namaDiskon = "Reguler (Tanpa Diskon)";
-            }
-        }
+        DiskonStrategy activeStrategy = (diskonStrategy != null) ? diskonStrategy : tentukanDefaultDiskon();
+        double diskon = activeStrategy.hitungDiskon(kendaraan, subtotal, durasi);
 
-        // Batasi potongan diskon agar tidak negatif dan tidak melebihi subtotal
-        if (this.potonganDiskon > subtotal) {
-            this.potonganDiskon = subtotal;
-        }
-        if (this.potonganDiskon < 0) {
-            this.potonganDiskon = 0;
-        }
-
-        this.totalBiaya = subtotal - this.potonganDiskon;
+        BiayaParkir biaya = BiayaParkir.of(subtotal, diskon, activeStrategy.getNamaDiskon());
+        this.potonganDiskon = biaya.getPotonganDiskon();
+        this.namaDiskon = biaya.getNamaDiskon();
+        this.totalBiaya = biaya.getTotalTagihan();
         return this.totalBiaya;
+    }
+
+    private DiskonStrategy tentukanDefaultDiskon() {
+        if (kendaraan != null && kendaraan.isMobilListrik()) {
+            return new EVIncentiveDiskonStrategy();
+        }
+        return new TanpaDiskonStrategy();
+    }
+
+    /**
+     * Mengembalikan Value Object DurasiParkir terenkapsulasi (P14 Clean OOD).
+     */
+    public DurasiParkir getDurasiParkir() {
+        return DurasiParkir.of(jamMasuk, jamKeluar);
+    }
+
+    /**
+     * Mengembalikan Value Object BiayaParkir terenkapsulasi (P14 Clean OOD).
+     */
+    public BiayaParkir getRincianBiaya() {
+        double subtotal = totalBiaya + potonganDiskon;
+        return BiayaParkir.of(subtotal, potonganDiskon, namaDiskon);
     }
 
     /**

@@ -23,6 +23,11 @@ public interface IParkingBilling {
     double hitungTagihan(KarcisParkir tiket, int jamKeluar);
 
     /**
+     * Menghitung total tagihan akhir menggunakan Context Object BillingContext (P14 Refactoring).
+     */
+    double hitungTagihan(BillingContext context);
+
+    /**
      * Memproses alur check-out dan pembayaran dengan parameter nama metode (kompatibilitas backward).
      */
     boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, String metode, double uangBayar)
@@ -32,6 +37,12 @@ public interface IParkingBilling {
      * Memproses alur check-out menggunakan abstraksi IPaymentProcessor dan DiskonStrategy (OCP & LSP).
      */
     boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, IPaymentProcessor paymentProcessor, double uangBayar, DiskonStrategy diskonStrategy)
+            throws TiketTidakDitemukanException, PembayaranKurangException;
+
+    /**
+     * Memproses alur check-out menggunakan Parameter Object CheckOutRequest (P14 Clean Refactoring).
+     */
+    boolean prosesKeluar(CheckOutRequest request)
             throws TiketTidakDitemukanException, PembayaranKurangException;
 
     /**

@@ -337,6 +337,9 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
         if (k == null) {
             throw new IllegalArgumentException("Kendaraan tidak boleh null!");
         }
+        if (jamMasuk < 0 || jamMasuk > 23) {
+            throw new IllegalArgumentException("Jam masuk harus berada dalam rentang 0-23! Diberikan: " + jamMasuk);
+        }
         if (cariTiketAktifDenganPlat(k.getPlatNomor()) != null) {
             System.out.println("[GATE REJECTED] Kendaraan plat " + k.getPlatNomor() + " sudah terdaftar aktif di dalam gedung!");
             return null;
@@ -363,6 +366,9 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
 
     @Override
     public KarcisParkir prosesMasukEmergency(String tipeKendaraan, int jamMasuk) throws KapasitasPenuhException {
+        if (jamMasuk < 0 || jamMasuk > 23) {
+            throw new IllegalArgumentException("Jam masuk harus berada dalam rentang 0-23! Diberikan: " + jamMasuk);
+        }
         String tipe = (tipeKendaraan != null && !tipeKendaraan.trim().isEmpty()) ? tipeKendaraan.toUpperCase() : "MOBIL";
         counterTiket++;
         String emgPlate = String.format("EMG-%04d", counterTiket);
@@ -390,6 +396,9 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
     public KarcisParkir prosesMasuk(Kendaraan k, int jamMasuk) throws KapasitasPenuhException, KendaraanSudahParkirException {
         if (k == null) {
             throw new IllegalArgumentException("Data kendaraan tidak boleh null!");
+        }
+        if (jamMasuk < 0 || jamMasuk > 23) {
+            throw new IllegalArgumentException("Jam masuk harus berada dalam rentang 0-23! Diberikan: " + jamMasuk);
         }
 
         SlotParkir slotSudahAda = cariSlotDenganPlat(k.getPlatNomor());
@@ -434,23 +443,34 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
         if (k == null) {
             return null;
         }
-
         if (k.isMobilListrik()) {
-            for (SlotParkir slot : daftarSlot) {
-                if (!slot.isTerisi() && "MOBIL_LISTRIK".equals(slot.getTipeSlot())) {
-                    return slot;
-                }
+            SlotParkir slotEV = cariSlotKhususEV();
+            if (slotEV != null) {
+                return slotEV;
             }
         }
+        return cariSlotRegulerTerendah(k);
+    }
 
+    private SlotParkir cariSlotKhususEV() {
+        for (SlotParkir slot : daftarSlot) {
+            if (!slot.isTerisi() && "MOBIL_LISTRIK".equals(slot.getTipeSlot())) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    private SlotParkir cariSlotRegulerTerendah(Kendaraan k) {
         SlotParkir kandidat = null;
         for (SlotParkir slot : daftarSlot) {
-            if (!slot.isTerisi() && slot.cocokUntuk(k)) {
-                if (kandidat == null || slot.getLantai() < kandidat.getLantai()) {
-                    kandidat = slot;
-                    if (kandidat.getLantai() == 1) {
-                        break;
-                    }
+            if (slot.isTerisi() || !slot.cocokUntuk(k)) {
+                continue;
+            }
+            if (kandidat == null || slot.getLantai() < kandidat.getLantai()) {
+                kandidat = slot;
+                if (kandidat.getLantai() == 1) {
+                    break;
                 }
             }
         }
@@ -461,11 +481,10 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
         if (plat == null || plat.trim().isEmpty()) return null;
         String p = plat.replaceAll("\\s+", "").toUpperCase();
         for (SlotParkir s : daftarSlot) {
-            if (s.isTerisi() && s.getKendaraanParkir() != null) {
-                String platParkir = s.getKendaraanParkir().getPlatNomor().replaceAll("\\s+", "").toUpperCase();
-                if (platParkir.equals(p)) {
-                    return s;
-                }
+            if (!s.isTerisi() || s.getKendaraanParkir() == null) continue;
+            String platParkir = s.getKendaraanParkir().getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+            if (platParkir.equals(p)) {
+                return s;
             }
         }
         return null;
@@ -476,11 +495,10 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
         String p = plat.replaceAll("\\s+", "").toUpperCase();
         for (int i = riwayatTransaksi.size() - 1; i >= 0; i--) {
             KarcisParkir t = riwayatTransaksi.get(i);
-            if (!t.isSudahDibayar() && t.getKendaraan() != null) {
-                String platTiket = t.getKendaraan().getPlatNomor().replaceAll("\\s+", "").toUpperCase();
-                if (platTiket.equals(p)) {
-                    return t;
-                }
+            if (t.isSudahDibayar() || t.getKendaraan() == null) continue;
+            String platTiket = t.getKendaraan().getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+            if (platTiket.equals(p)) {
+                return t;
             }
         }
         return null;
@@ -491,10 +509,9 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
         String s = idSlot.trim().toUpperCase();
         for (int i = riwayatTransaksi.size() - 1; i >= 0; i--) {
             KarcisParkir t = riwayatTransaksi.get(i);
-            if (!t.isSudahDibayar() && t.getSlot() != null) {
-                if (t.getSlot().getIdSlot().equalsIgnoreCase(s)) {
-                    return t;
-                }
+            if (t.isSudahDibayar() || t.getSlot() == null) continue;
+            if (t.getSlot().getIdSlot().equalsIgnoreCase(s)) {
+                return t;
             }
         }
         return null;
@@ -511,14 +528,31 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
     }
 
     // =========================================================================
-    // IMPLEMENTASI IParkingBilling (ISP, OCP, LSP)
+    // IMPLEMENTASI IParkingBilling (ISP, OCP, LSP, P14 Clean Refactoring)
     // =========================================================================
+
+    private double getTarifJamPertama(Kendaraan k) {
+        if (k != null && "MOTOR".equalsIgnoreCase(k.getTipe())) {
+            return tarifJamPertamaMotor;
+        }
+        return tarifJamPertamaMobil;
+    }
+
+    private double getTarifPerJamBerikutnya(Kendaraan k) {
+        if (k != null && "MOTOR".equalsIgnoreCase(k.getTipe())) {
+            return tarifPerJamMotor;
+        }
+        return tarifPerJamMobil;
+    }
 
     @Override
     public double hitungTagihan(KarcisParkir tiket, int jamKeluar, DiskonStrategy diskonStrategy) {
         if (tiket == null) return 0.0;
-        double tarifPertama = "MOTOR".equals(tiket.getKendaraan().getTipe()) ? tarifJamPertamaMotor : tarifJamPertamaMobil;
-        double tarifBerikutnya = "MOTOR".equals(tiket.getKendaraan().getTipe()) ? tarifPerJamMotor : tarifPerJamMobil;
+        if (jamKeluar < 0 || jamKeluar > 24) {
+            throw new IllegalArgumentException("Jam keluar harus berada dalam rentang 0-24! Diberikan: " + jamKeluar);
+        }
+        double tarifPertama = getTarifJamPertama(tiket.getKendaraan());
+        double tarifBerikutnya = getTarifPerJamBerikutnya(tiket.getKendaraan());
         return tiket.hitungTarif(jamKeluar, tarifPertama, tarifBerikutnya, diskonStrategy);
     }
 
@@ -531,58 +565,103 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
     }
 
     @Override
-    public boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, IPaymentProcessor paymentProcessor, double uangBayar, DiskonStrategy diskonStrategy)
+    public double hitungTagihan(BillingContext context) {
+        if (context == null || context.getTiket() == null) return 0.0;
+        return hitungTagihan(context.getTiket(), context.getJamKeluar(), context.getDiskonStrategy());
+    }
+
+    /**
+     * Memproses alur check-out dan pembayaran menggunakan Parameter Object CheckOutRequest (P14 Clean Refactoring).
+     * Menerapkan Guard Clauses untuk alur validasi yang datar tanpa nesting berlebih.
+     */
+    @Override
+    public boolean prosesKeluar(CheckOutRequest request)
             throws TiketTidakDitemukanException, PembayaranKurangException {
-        if (tiket == null) {
-            System.out.println("[CHECK-OUT GAGAL] Tiket parkir tidak ditemukan.");
-            throw new TiketTidakDitemukanException("Tiket null");
+        if (request == null) {
+            throw new IllegalArgumentException("CheckOutRequest tidak boleh null!");
         }
 
-        if (tiket.isSudahDibayar()) {
-            System.out.printf("[CHECK-OUT DITOLAK] Tiket %s sudah lunas/keluar sebelumnya.%n", tiket.getNomorTiket());
-            throw new TiketTidakDitemukanException("Tiket " + tiket.getNomorTiket() + " sudah diselesaikan sebelumnya.");
-        }
+        KarcisParkir tiket = request.getTiket();
+        validasiKelaikanCheckOut(tiket);
 
-        double tarifPertama = "MOTOR".equals(tiket.getKendaraan().getTipe()) ? tarifJamPertamaMotor : tarifJamPertamaMobil;
-        double tarifBerikutnya = "MOTOR".equals(tiket.getKendaraan().getTipe()) ? tarifPerJamMotor : tarifPerJamMobil;
+        int jamKeluar = request.getJamKeluar();
+        double tarifPertama = getTarifJamPertama(tiket.getKendaraan());
+        double tarifBerikutnya = getTarifPerJamBerikutnya(tiket.getKendaraan());
 
-        tiket.hitungTarif(jamKeluar, tarifPertama, tarifBerikutnya, diskonStrategy);
+        tiket.hitungTarif(jamKeluar, tarifPertama, tarifBerikutnya, request.getDiskonStrategy());
 
-        if (paymentProcessor == null) {
-            paymentProcessor = new CashPaymentProcessor();
-        }
-
-        boolean lunas = paymentProcessor.prosesPembayaran(tiket, uangBayar);
+        IPaymentProcessor processor = request.getPaymentProcessor();
+        boolean lunas = processor.prosesPembayaran(tiket, request.getUangBayar());
         if (!lunas) {
             System.out.println("[GATE TETAP TERTUTUP] Pembayaran belum selesai. Portal keluar tidak dapat dibuka.");
             return false;
         }
 
+        selesaikanPelepasanSlotDanKas(tiket, processor);
+        return true;
+    }
+
+    @Override
+    public boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, IPaymentProcessor paymentProcessor, double uangBayar, DiskonStrategy diskonStrategy)
+            throws TiketTidakDitemukanException, PembayaranKurangException {
+        if (uangBayar < 0) {
+            throw new IllegalArgumentException("Nominal pembayaran tidak boleh bernilai negatif!");
+        }
+        CheckOutRequest request = new CheckOutRequest(tiket, jamKeluar, paymentProcessor, uangBayar, diskonStrategy);
+        return prosesKeluar(request);
+    }
+
+    @Override
+    public boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, String metode, double uangBayar)
+            throws TiketTidakDitemukanException, PembayaranKurangException {
+        if (tiket == null) {
+            System.out.println("[CHECK-OUT GAGAL] Tiket parkir tidak ditemukan.");
+            throw new TiketTidakDitemukanException("Tiket null");
+        }
+        if (uangBayar < 0) {
+            throw new IllegalArgumentException("Nominal pembayaran tidak boleh bernilai negatif!");
+        }
+        IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
+        DiskonStrategy diskon = (tiket != null && tiket.getKendaraan() != null && tiket.getKendaraan().isMobilListrik())
+                ? new EVIncentiveDiskonStrategy()
+                : new TanpaDiskonStrategy();
+        CheckOutRequest request = new CheckOutRequest(tiket, jamKeluar, processor, uangBayar, diskon);
+        return prosesKeluar(request);
+    }
+
+    private void validasiKelaikanCheckOut(KarcisParkir tiket) throws TiketTidakDitemukanException {
+        if (tiket == null) {
+            System.out.println("[CHECK-OUT GAGAL] Tiket parkir tidak ditemukan.");
+            throw new TiketTidakDitemukanException("Tiket null");
+        }
+        if (tiket.isSudahDibayar()) {
+            System.out.printf("[CHECK-OUT DITOLAK] Tiket %s sudah lunas/keluar sebelumnya.%n", tiket.getNomorTiket());
+            throw new TiketTidakDitemukanException("Tiket " + tiket.getNomorTiket() + " sudah diselesaikan sebelumnya.");
+        }
         SlotParkir slot = tiket.getSlot();
-        if (slot != null) {
+        if (slot != null && (!slot.isTerisi() || (slot.getKendaraanParkir() != null && !slot.getKendaraanParkir().equals(tiket.getKendaraan())))) {
+            System.out.printf("[CHECK-OUT DITOLAK] Kendaraan %s sudah tidak terparkir di slot %s (mungkin sudah keluar sebelumnya).%n",
+                    tiket.getKendaraan() != null ? tiket.getKendaraan().getPlatNomor() : "-", slot.getIdSlot());
+            throw new TiketTidakDitemukanException(tiket.getKendaraan() != null ? tiket.getKendaraan().getPlatNomor() : tiket.getNomorTiket());
+        }
+    }
+
+    private void selesaikanPelepasanSlotDanKas(KarcisParkir tiket, IPaymentProcessor processor) {
+        SlotParkir slot = tiket.getSlot();
+        if (slot != null && slot.isTerisi() && tiket.getKendaraan() != null && tiket.getKendaraan().equals(slot.getKendaraanParkir())) {
             slot.kosongkanSlot();
             DatabaseManager.updateStatusSlot(slot);
         }
 
         this.totalPendapatan += tiket.getTotalBiaya();
         DatabaseManager.updateKarcisKeluar(tiket);
-        setStatusGerbang(true, "TERBUKA KELUAR (" + paymentProcessor.getNamaMetode() + ")");
+        setStatusGerbang(true, "TERBUKA KELUAR (" + processor.getNamaMetode() + ")");
 
-        System.out.printf("[CHECK-OUT SUKSES] Kendaraan %s telah keluar (%s).%n", tiket.getKendaraan().getPlatNomor(), paymentProcessor.getNamaMetode());
+        System.out.printf("[CHECK-OUT SUKSES] Kendaraan %s telah keluar (%s).%n",
+                tiket.getKendaraan().getPlatNomor(), processor.getNamaMetode());
         if (slot != null) {
             System.out.printf(" >> Slot %s sekarang KOSONG kembali dan siap digunakan.%n", slot.getIdSlot());
         }
-        return true;
-    }
-
-    @Override
-    public boolean prosesKeluar(KarcisParkir tiket, int jamKeluar, String metode, double uangBayar)
-            throws TiketTidakDitemukanException, PembayaranKurangException {
-        IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
-        DiskonStrategy diskon = (tiket != null && tiket.getKendaraan() != null && tiket.getKendaraan().isMobilListrik())
-                ? new EVIncentiveDiskonStrategy()
-                : new TanpaDiskonStrategy();
-        return prosesKeluar(tiket, jamKeluar, processor, uangBayar, diskon);
     }
 
     public boolean prosesKeluarDenganPlat(String plat, int jamKeluar, String metode, double uangBayar)
@@ -637,7 +716,8 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
 
     public void cetakStrukKeluar(KarcisParkir tiket) {
         if (tiket == null) return;
-        int durasi = tiket.hitungDurasi(tiket.getJamKeluar());
+        DurasiParkir durasi = tiket.getDurasiParkir();
+        BiayaParkir biaya = tiket.getRincianBiaya();
         System.out.println("==========================================================================");
         System.out.printf("                     KUITANSI PARKIR - %s                   %n", namaGedung.toUpperCase());
         System.out.println("==========================================================================");
@@ -645,15 +725,14 @@ public class GedungParkir implements IParkingGateController, IParkingBilling, IA
         System.out.printf(" Kendaraan    : %s (%s - %s)%n",
                 tiket.getKendaraan().getPlatNomor(), tiket.getKendaraan().getTipe(), tiket.getKendaraan().getMerk());
         System.out.printf(" Lokasi Parkir: Slot %s (Lantai %d)%n", tiket.getSlot().getIdSlot(), tiket.getSlot().getLantai());
-        System.out.printf(" Waktu Parkir : %02d:00 s/d %02d:00 (Durasi: %d Jam)%n",
-                tiket.getJamMasuk(), tiket.getJamKeluar(), durasi);
-        if (tiket.getPotonganDiskon() > 0) {
-            System.out.printf(" Program      : %s (Hemat Rp %,.0f)%n", tiket.getNamaDiskon(), tiket.getPotonganDiskon());
+        System.out.printf(" Waktu Parkir : %s (Durasi: %s)%n", durasi.getRentangWaktu(), durasi.toDisplayString());
+        if (biaya.isMendapatDiskon()) {
+            System.out.printf(" Program      : %s (Hemat %s)%n", biaya.getNamaDiskon(), biaya.formatDiskon());
         } else if (tiket.getKendaraan().isMobilListrik()) {
             System.out.println(" Catatan      : Mendapatkan Insentif Hijau Diskon 20% (EV Friendly)");
         }
         System.out.println("--------------------------------------------------------------------------");
-        System.out.printf(" TOTAL TAGIHAN: Rp %,.0f  [STATUS: LUNAS - GATE OPEN]%n", tiket.getTotalBiaya());
+        System.out.printf(" TOTAL TAGIHAN: %s  [STATUS: LUNAS - GATE OPEN]%n", biaya.formatTotalTagihan());
         System.out.println("==========================================================================\n");
     }
 
