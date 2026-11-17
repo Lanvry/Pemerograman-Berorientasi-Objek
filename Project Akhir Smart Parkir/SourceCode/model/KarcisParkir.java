@@ -3,7 +3,9 @@ package model;
 /**
  * Class KarcisParkir merepresentasikan bukti karcis parkir fisik/digital.
  * Mengimplementasikan relasi Agregasi dengan Kendaraan dan SlotParkir.
- * Bertanggung jawab menghitung durasi, tarif progresif, diskon EV, dan status bayar.
+ * Bertanggung jawab menghitung durasi, tarif progresif, skema diskon dinamis (OCP/LSP), dan status bayar.
+ * 
+ * Penulis: Arjuna Lanang Adiwarsana (3125522010)
  */
 public class KarcisParkir {
     private String nomorTiket;
@@ -13,6 +15,8 @@ public class KarcisParkir {
     private int jamKeluar;
     private boolean sudahDibayar;
     private double totalBiaya;
+    private double potonganDiskon;
+    private String namaDiskon;
     private String metodePembayaran;
 
     public KarcisParkir(String nomorTiket, Kendaraan kendaraan, SlotParkir slot, int jamMasuk) {
@@ -35,6 +39,8 @@ public class KarcisParkir {
         this.jamKeluar = jamMasuk;
         this.sudahDibayar = false;
         this.totalBiaya = 0.0;
+        this.potonganDiskon = 0.0;
+        this.namaDiskon = "-";
         this.metodePembayaran = "-";
     }
 
@@ -47,7 +53,10 @@ public class KarcisParkir {
         return Math.max(1, durasi); // Minimal dihitung 1 jam
     }
 
-    public double hitungTarif(int jamKeluarAktual, double tarifJamPertama, double tarifPerJamBerikutnya) {
+    /**
+     * Menghitung tarif parkir dengan skema DiskonStrategy dinamis (OCP & LSP).
+     */
+    public double hitungTarif(int jamKeluarAktual, double tarifJamPertama, double tarifPerJamBerikutnya, DiskonStrategy diskonStrategy) {
         this.jamKeluar = jamKeluarAktual;
         int durasi = hitungDurasi(jamKeluarAktual);
 
@@ -56,13 +65,37 @@ public class KarcisParkir {
             subtotal += (durasi - 1) * tarifPerJamBerikutnya;
         }
 
-        // Insentif Hijau: Mobil Listrik mendapatkan diskon 20%
-        if (kendaraan.isMobilListrik()) {
-            subtotal = subtotal * 0.80;
+        if (diskonStrategy != null) {
+            this.potonganDiskon = diskonStrategy.hitungDiskon(kendaraan, subtotal, durasi);
+            this.namaDiskon = diskonStrategy.getNamaDiskon();
+        } else {
+            // Fallback default insentif EV jika strategy tidak disuplai
+            if (kendaraan.isMobilListrik()) {
+                this.potonganDiskon = subtotal * 0.20;
+                this.namaDiskon = "Insentif Hijau EV (Diskon 20%)";
+            } else {
+                this.potonganDiskon = 0.0;
+                this.namaDiskon = "Reguler (Tanpa Diskon)";
+            }
         }
 
-        this.totalBiaya = subtotal;
+        // Batasi potongan diskon agar tidak negatif dan tidak melebihi subtotal
+        if (this.potonganDiskon > subtotal) {
+            this.potonganDiskon = subtotal;
+        }
+        if (this.potonganDiskon < 0) {
+            this.potonganDiskon = 0;
+        }
+
+        this.totalBiaya = subtotal - this.potonganDiskon;
         return this.totalBiaya;
+    }
+
+    /**
+     * Menghitung tarif parkir menggunakan default EV Incentive (Backward Compatibility).
+     */
+    public double hitungTarif(int jamKeluarAktual, double tarifJamPertama, double tarifPerJamBerikutnya) {
+        return hitungTarif(jamKeluarAktual, tarifJamPertama, tarifPerJamBerikutnya, new EVIncentiveDiskonStrategy());
     }
 
     public boolean prosesPembayaran(String metode, double uangBayar) throws PembayaranKurangException {
@@ -109,14 +142,31 @@ public class KarcisParkir {
         return totalBiaya;
     }
 
+    public double getPotonganDiskon() {
+        return potonganDiskon;
+    }
+
+    public String getNamaDiskon() {
+        return namaDiskon;
+    }
+
     public String getMetodePembayaran() {
         return metodePembayaran;
     }
 
+    public void setPotonganDiskon(double potonganDiskon) {
+        this.potonganDiskon = Math.max(0, potonganDiskon);
+    }
+
+    public void setNamaDiskon(String namaDiskon) {
+        this.namaDiskon = (namaDiskon != null) ? namaDiskon : "-";
+    }
+
     @Override
     public String toString() {
-        return String.format("Tiket [%s] Plat: %s | Slot: %s | Masuk: %02d:00 | Status: %s",
+        return String.format("Tiket [%s] Plat: %s | Slot: %s | Masuk: %02d:00 | Tagihan: Rp %,.0f (%s) | Status: %s",
                 nomorTiket, kendaraan.getPlatNomor(), slot.getIdSlot(), jamMasuk,
+                totalBiaya, namaDiskon,
                 (sudahDibayar ? "LUNAS" : "BELUM BAYAR"));
     }
 }

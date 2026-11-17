@@ -61,7 +61,7 @@ public class AdminGUI extends JFrame {
     private DefaultTableModel logModel;
 
     private JTextField txtTiket, txtJamKeluar, txtUangBayar;
-    private JComboBox<String> cbMetode;
+    private JComboBox<String> cbMetode, cbDiskon;
     private JLabel lblInfoKendaraan, lblTagihan, lblNotice;
 
     private boolean isExitGateMode = false;
@@ -607,6 +607,9 @@ public class AdminGUI extends JFrame {
                     + "  |  Slot: " + slot.getIdSlot()
                     + "  |  Masuk: " + selectedTiket.getJamMasuk() + ":00");
                 txtJamKeluar.setText(String.valueOf(Math.min(23, selectedTiket.getJamMasuk() + 2)));
+                if (cbDiskon != null) {
+                    cbDiskon.setSelectedIndex(0);
+                }
                 updateTagihan();
                 lblNotice.setText("<html><span style='color:#16a34a;'>Kendaraan dipilih: " + k.getPlatNomor() + "</span></html>");
             }
@@ -1090,7 +1093,7 @@ public class AdminGUI extends JFrame {
         p.add(topBox, BorderLayout.NORTH);
 
         // Form Fields
-        JPanel form = new JPanel(new GridLayout(4, 2, 8, 6));
+        JPanel form = new JPanel(new GridLayout(5, 2, 8, 6));
         form.setOpaque(false);
 
         form.add(fieldLabel("No. Tiket"));
@@ -1118,6 +1121,17 @@ public class AdminGUI extends JFrame {
         jamBox.add(txtJamKeluar, BorderLayout.CENTER);
         jamBox.add(btnNow, BorderLayout.EAST);
         form.add(jamBox);
+
+        form.add(fieldLabel("Program Diskon / Tarif"));
+        cbDiskon = new JComboBox<>(new String[]{
+            "Otomatis (Berdasarkan Tipe Kendaraan / EV Diskon 20%)",
+            "Reguler (Tanpa Diskon)",
+            "Member VIP (Diskon 30%)",
+            "Promo Spesial (Diskon 10%)"
+        });
+        styleCombo(cbDiskon);
+        cbDiskon.addActionListener(e -> updateTagihan());
+        form.add(cbDiskon);
 
         form.add(fieldLabel("Metode Bayar"));
         cbMetode = new JComboBox<>(new String[]{"E_MONEY", "QRIS", "VIRTUAL_ACCOUNT", "CASH"});
@@ -1791,7 +1805,9 @@ public class AdminGUI extends JFrame {
                 return;
             }
 
-            boolean ok = gedung.prosesKeluar(found, jamKeluar, metode, uang);
+            IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
+            DiskonStrategy strategy = getSelectedDiskonStrategy();
+            boolean ok = gedung.prosesKeluar(found, jamKeluar, processor, uang, strategy);
             if (ok) {
                 animGate(true, "TERBUKA KELUAR");
                 selectedSlot  = null;
@@ -1839,7 +1855,9 @@ public class AdminGUI extends JFrame {
                 return;
             }
 
-            boolean ok = gedung.prosesKeluar(found, jamKeluar, metode, total);
+            IPaymentProcessor processor = PaymentProcessorFactory.getProcessor(metode);
+            DiskonStrategy strategy = getSelectedDiskonStrategy();
+            boolean ok = gedung.prosesKeluar(found, jamKeluar, processor, total, strategy);
             if (ok) {
                 animGate(true, "TERBUKA KELUAR");
                 selectedSlot  = null;
@@ -1860,15 +1878,26 @@ public class AdminGUI extends JFrame {
         }
     }
 
+    private DiskonStrategy getSelectedDiskonStrategy() {
+        if (cbDiskon == null) return new EVIncentiveDiskonStrategy();
+        int idx = cbDiskon.getSelectedIndex();
+        switch (idx) {
+            case 1:
+                return new TanpaDiskonStrategy();
+            case 2:
+                return new MemberVIPDiskonStrategy();
+            case 3:
+                return new PromoWeekendDiskonStrategy();
+            case 0:
+            default:
+                return new EVIncentiveDiskonStrategy();
+        }
+    }
+
     private double hitungTotalTagihanTiket(KarcisParkir t, int jamKeluar) {
         if (t == null) return 0.0;
-        int durasi = t.hitungDurasi(jamKeluar);
-        boolean motor = "MOTOR".equals(t.getKendaraan().getTipe());
-        double p1 = motor ? gedung.getTarifJamPertamaMotor() : gedung.getTarifJamPertamaMobil();
-        double pN = motor ? gedung.getTarifPerJamMotor()     : gedung.getTarifPerJamMobil();
-        double total = p1 + (durasi > 1 ? (durasi - 1) * pN : 0);
-        if (t.getKendaraan().isMobilListrik()) total *= 0.80;
-        return total;
+        DiskonStrategy strategy = getSelectedDiskonStrategy();
+        return gedung.hitungTagihan(t, jamKeluar, strategy);
     }
 
     private JLabel createDetailLabel(String text, Color fg) {
@@ -1988,12 +2017,14 @@ public class AdminGUI extends JFrame {
         center.add(lblMidtransStatus);
         center.add(Box.createVerticalStrut(10));
 
-        JPanel detail = new JPanel(new GridLayout(3, 2, 8, 4));
+        JPanel detail = new JPanel(new GridLayout(4, 2, 8, 4));
         detail.setOpaque(false);
         detail.add(createDetailLabel("No. Tiket", T2));
         detail.add(createDetailLabel(tiket.getNomorTiket(), T1));
         detail.add(createDetailLabel("Kendaraan", T2));
         detail.add(createDetailLabel(tiket.getKendaraan().getPlatNomor() + " (" + tiket.getKendaraan().getMerk() + ")", T1));
+        detail.add(createDetailLabel("Program Diskon", T2));
+        detail.add(createDetailLabel(getSelectedDiskonStrategy().getNamaDiskon(), T1));
         detail.add(createDetailLabel("Total Tagihan", T2));
         JLabel lblTotal = new JLabel(rupiah.format(totalTagihan));
         lblTotal.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -2011,7 +2042,7 @@ public class AdminGUI extends JFrame {
                 pollTimer.stop();
                 dlg.dispose();
                 try {
-                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, "QRIS_MIDTRANS", totalTagihan);
+                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, new QRISPaymentProcessor("QRIS_MIDTRANS"), totalTagihan, getSelectedDiskonStrategy());
                     if (ok) {
                         DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, "QRIS_MIDTRANS");
                         animGate(true, "TERBUKA KELUAR");
@@ -2143,12 +2174,14 @@ public class AdminGUI extends JFrame {
         center.add(Box.createVerticalStrut(10));
 
         // Detail Tagihan
-        JPanel detail = new JPanel(new GridLayout(3, 2, 8, 4));
+        JPanel detail = new JPanel(new GridLayout(4, 2, 8, 4));
         detail.setOpaque(false);
         detail.add(createDetailLabel("No. Tiket", T2));
         detail.add(createDetailLabel(tiket.getNomorTiket(), T1));
         detail.add(createDetailLabel("Kendaraan", T2));
         detail.add(createDetailLabel(tiket.getKendaraan().getPlatNomor() + " (" + tiket.getKendaraan().getMerk() + ")", T1));
+        detail.add(createDetailLabel("Program Diskon", T2));
+        detail.add(createDetailLabel(getSelectedDiskonStrategy().getNamaDiskon(), T1));
         detail.add(createDetailLabel("Total Tagihan", T2));
         JLabel lblTotal = new JLabel(rupiah.format(totalTagihan));
         lblTotal.setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -2208,7 +2241,9 @@ public class AdminGUI extends JFrame {
                 dlg.dispose();
                 String paymentMethod = "VA_" + selectedBankName[0].toUpperCase();
                 try {
-                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, paymentMethod, totalTagihan);
+                    IPaymentProcessor proc = new VirtualAccountPaymentProcessor(paymentMethod);
+                    DiskonStrategy strat = getSelectedDiskonStrategy();
+                    boolean ok = gedung.prosesKeluar(tiket, jamKeluar, proc, totalTagihan, strat);
                     if (ok) {
                         DatabaseManager.updatePelunasanTiket(tiket.getNomorTiket(), jamKeluar, totalTagihan, paymentMethod);
                         animGate(true, "TERBUKA KELUAR");
@@ -2299,7 +2334,12 @@ public class AdminGUI extends JFrame {
         SlotParkir s = tiket.getSlot();
         int durasi = tiket.hitungDurasi(tiket.getJamKeluar());
         double kembalian = Math.max(0, uangBayar - tiket.getTotalBiaya());
-        String diskonInfo = k.isMobilListrik() ? "\n [INSENTIF HIJAU: DISKON 20% DITERAPKAN]" : "";
+        String diskonInfo = "";
+        if (tiket.getPotonganDiskon() > 0) {
+            diskonInfo = String.format("\n [PROGRAM: %s - POTONGAN Rp %,.0f]", tiket.getNamaDiskon(), tiket.getPotonganDiskon());
+        } else if (k.isMobilListrik()) {
+            diskonInfo = "\n [INSENTIF HIJAU: DISKON 20% DITERAPKAN]";
+        }
 
         String receiptText = String.format(
             "=========================================\n" +
@@ -2508,15 +2548,17 @@ public class AdminGUI extends JFrame {
                 if (item.getNomorTiket().equalsIgnoreCase(no) && !item.isSudahDibayar()) { t = item; break; }
             if (t == null) { lblTagihan.setText("-"); return; }
 
-            int durasi = t.hitungDurasi(Integer.parseInt(txtJamKeluar.getText().trim()));
-            boolean motor = "MOTOR".equals(t.getKendaraan().getTipe());
-            double p1 = motor ? gedung.getTarifJamPertamaMotor() : gedung.getTarifJamPertamaMobil();
-            double pN = motor ? gedung.getTarifPerJamMotor()     : gedung.getTarifPerJamMobil();
-            double total = p1 + (durasi > 1 ? (durasi - 1) * pN : 0);
-            if (t.getKendaraan().isMobilListrik()) total *= 0.80;
+            int jamKeluar = Integer.parseInt(txtJamKeluar.getText().trim());
+            int durasi = t.hitungDurasi(jamKeluar);
+            DiskonStrategy strategy = getSelectedDiskonStrategy();
+            double total = gedung.hitungTagihan(t, jamKeluar, strategy);
+            double diskon = t.getPotonganDiskon();
 
-            lblTagihan.setText(rupiah.format(total) + " (" + durasi + " jam)"
-                + (t.getKendaraan().isMobilListrik() ? " [EV-20%]" : ""));
+            String labelText = rupiah.format(total) + " (" + durasi + " jam)";
+            if (diskon > 0) {
+                labelText += " [" + strategy.getNamaDiskon() + " - Hemat " + rupiah.format(diskon) + "]";
+            }
+            lblTagihan.setText(labelText);
             txtUangBayar.setText(String.valueOf((long) total));
         } catch (Exception ignored) {}
     }

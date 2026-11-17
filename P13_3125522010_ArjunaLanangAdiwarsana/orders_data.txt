@@ -1,0 +1,4 @@
+# Database Flat File Order Repository - P13 SOLID
+ORD-202611-001;Budi Santoso;budi.santoso@pens.ac.id;PAID;2026-11-17T09:41:00.478491;ITM-01:Buku Pemrograman Java:85000.0:2#ITM-02:Mouse Wireless Ergonomis:150000.0:1#ITM-03:Flashdisk 64GB USB-C:95000.0:1
+ORD-202611-002;Siti Aminah (VIP);siti.vip@pens.ac.id;PAID;2026-11-17T09:41:00.490962;ITM-10:Mechanical Keyboard RGB:650000.0:1#ITM-11:Keycaps PBT Custom:180000.0:1
+ORD-202611-003;Andi Pratama;andi@pens.ac.id;PAID;2026-11-17T09:41:00.493720;ITM-20:Notebook Spiral A5:45000.0:1

@@ -7,6 +7,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,6 +15,12 @@ import java.util.Set;
 /**
  * Kelas KendaraanFileRepository bertindak sebagai pengelola persistensi berkas teks (File Persistence)
  * untuk entitas Kendaraan menggunakan pustaka java.nio.file (Files, Path, Paths) dan UTF-8 charset.
+ * 
+ * Prinsip SOLID yang diterapkan:
+ * - DIP (Dependency Inversion Principle): Mengimplementasikan interface IKendaraanRepository sehingga
+ *   GedungParkir beroperasi melalui abstraksi repositori dan tidak terikat kuat ke implementasi file fisik.
+ * - SRP (Single Responsibility Principle): Fokus secara eksklusif pada serialisasi, deserialisasi,
+ *   dan integritas file persistensi kendaraan.
  * 
  * Sesuai kaidah Modul 12: Penyimpanan dan Pembacaan Data ke File
  * - Format serialisasi terdelimitasi pipe '|' (Format: PLAT_NOMOR|TIPE|MERK).
@@ -25,10 +32,82 @@ import java.util.Set;
  * 
  * Penulis: Arjuna Lanang Adiwarsana (3125522010)
  */
-public class KendaraanFileRepository {
+public class KendaraanFileRepository implements IKendaraanRepository {
 
     public static final Path DEFAULT_PATH = Paths.get("armada_kendaraan.txt");
     public static final String DELIMITER = "|";
+
+    private Path defaultPath;
+    private final List<Kendaraan> cacheKendaraan;
+
+    public KendaraanFileRepository() {
+        this(DEFAULT_PATH);
+    }
+
+    public KendaraanFileRepository(Path defaultPath) {
+        this.defaultPath = (defaultPath != null) ? defaultPath : DEFAULT_PATH;
+        this.cacheKendaraan = new ArrayList<>();
+    }
+
+    // =========================================================================
+    // IMPLEMENTASI IKendaraanRepository (DIP & ISP)
+    // =========================================================================
+
+    @Override
+    public void simpan(Path lokasi) throws IOException {
+        Path target = (lokasi != null) ? lokasi : this.defaultPath;
+        simpan(target, this.cacheKendaraan);
+    }
+
+    @Override
+    public List<Kendaraan> muat(Path lokasi) throws IOException {
+        Path target = (lokasi != null) ? lokasi : this.defaultPath;
+        List<Kendaraan> hasil = muatFile(target);
+        this.cacheKendaraan.clear();
+        this.cacheKendaraan.addAll(hasil);
+        return new ArrayList<>(this.cacheKendaraan);
+    }
+
+    @Override
+    public void tambah(Kendaraan k) throws FormatPlatTidakValidException {
+        if (k == null) {
+            throw new IllegalArgumentException("Kendaraan tidak boleh null.");
+        }
+        Kendaraan.validasiFormatPlat(k.getPlatNomor());
+        if (cari(k.getPlatNomor()) != null) {
+            throw new IllegalArgumentException("Kendaraan dengan plat '" + k.getPlatNomor() + "' sudah terdaftar.");
+        }
+        cacheKendaraan.add(k);
+    }
+
+    @Override
+    public boolean hapus(String plat) {
+        Kendaraan k = cari(plat);
+        if (k == null) return false;
+        return cacheKendaraan.remove(k);
+    }
+
+    @Override
+    public Kendaraan cari(String plat) {
+        if (plat == null || plat.trim().isEmpty()) return null;
+        String pTarget = plat.replaceAll("\\s+", "").toUpperCase();
+        for (Kendaraan k : cacheKendaraan) {
+            String pCur = k.getPlatNomor().replaceAll("\\s+", "").toUpperCase();
+            if (pCur.equals(pTarget)) {
+                return k;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public List<Kendaraan> getSemua() {
+        return Collections.unmodifiableList(new ArrayList<>(cacheKendaraan));
+    }
+
+    // =========================================================================
+    // METODE STATIS MODUL 12 (BACKWARD COMPATIBILITY & DIRECT UTILITY)
+    // =========================================================================
 
     /**
      * Menyimpan seluruh koleksi kendaraan ke berkas teks pada lokasi Path tertentu.
@@ -93,7 +172,7 @@ public class KendaraanFileRepository {
      * @return List<Kendaraan> yang valid
      * @throws IOException jika file tidak ditemukan, format salah, atau data domain tidak valid
      */
-    public static List<Kendaraan> muat(Path lokasi) throws IOException {
+    public static List<Kendaraan> muatFile(Path lokasi) throws IOException {
         if (lokasi == null) {
             throw new IllegalArgumentException("Path lokasi berkas tidak boleh null.");
         }
